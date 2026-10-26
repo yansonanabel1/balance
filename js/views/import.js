@@ -11,12 +11,18 @@ const MONTH_RE = MONTHS.map((m) => `(?:${m})[а-я]*`).join('|');
 const DATE_PATTERNS = [
   // 2026-10-26
   { re: /^\s*(\d{4})-(\d{1,2})-(\d{1,2})\b/, pick: (m) => [m[1], m[2], m[3]] },
-  // 26.10 / 26.10.2026 / 26/10/26. Без года — только если дальше пусто или разделитель,
-  // чтобы «7.5 часов спала» не стало датой 7 мая
+  // 20-22.10 — запись за несколько дней: кладём на первый день и помечаем диапазон
+  {
+    re: /^\s*(\d{1,2})\s*[-–—]\s*(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?(?!\d)/,
+    pick: (m) => [m[4], m[3], m[1]],
+    label: (m) => `${m[1]}–${m[2]}.${m[3]}`,
+  },
+  // 26.10 / 26.10.2026 / 26/10/26. Без года текст в той же строке разрешаем, только если
+  // месяц двузначный («24.10 чувствовала…»), — чтобы «7.5 часов спала» не стало датой 7 мая
   {
     re: /^\s*(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?(?!\d)/,
     pick: (m) => [m[3], m[2], m[1]],
-    ok: (m, after) => !!m[3] || /^\s*([—–:,-].*)?$/.test(after),
+    ok: (m, after) => !!m[3] || m[2].length === 2 || /^\s*([—–:,-].*)?$/.test(after),
   },
   // 26 октября 2026
   { re: new RegExp(`^\\s*(\\d{1,2})\\s+(${MONTH_RE})\\.?(?:\\s+(\\d{4}))?`, 'i'), pick: (m) => [m[3], monthIndex(m[2]) + 1, m[1]] },
@@ -49,7 +55,10 @@ function matchDate(line) {
     const after = line.slice(m[0].length);
     if (p.ok && !p.ok(m, after)) continue;
     const key = toKey(...p.pick(m));
-    if (key) return { key, rest: after.replace(/^[\s,:.—–-]+/, '') };
+    if (!key) continue;
+    const rest = after.replace(/^[\s,:.—–-]+/, '');
+    // для диапазона дат оставляем пометку, за какие дни запись
+    return { key, rest: p.label ? `(${p.label(m)}) ${rest}`.trim() : rest };
   }
   return null;
 }
@@ -74,7 +83,38 @@ function extractMetrics(text) {
   return out;
 }
 
+// Готовый файл с записями (.json): { entries: [{ date, sleep, state, ... text }] }.
+// В отличие от «Загрузить из файла» в настройках, он не заменяет данные, а дописывает.
+const JSON_FIELDS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'text'];
+
+function parseJsonNotes(raw) {
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const list = Array.isArray(data) ? data : Array.isArray(data?.entries) ? data.entries : data?.entries && typeof data.entries === 'object' ? Object.values(data.entries) : null;
+  if (!list) return null;
+  const notes = list
+    .filter((e) => e && store.isDateKey(e.date))
+    .map((e) => {
+      const n = { date: e.date };
+      for (const k of JSON_FIELDS) {
+        if (k === 'text' ? typeof e.text === 'string' && e.text.trim() : typeof e[k] === 'number') n[k] = k === 'text' ? e.text.trim() : e[k];
+      }
+      n.text = n.text || '';
+      return n;
+    });
+  notes.sort((a, b) => b.date.localeCompare(a.date));
+  return { notes, skipped: 0 };
+}
+
 export function parseNotes(raw) {
+  if (/^\s*[[{]/.test(raw || '')) {
+    const fromJson = parseJsonNotes(raw);
+    if (fromJson) return fromJson;
+  }
   const lines = String(raw || '').replace(/\r\n?/g, '\n').split('\n');
   const byDate = new Map();
   let current = null;
@@ -85,6 +125,9 @@ export function parseNotes(raw) {
       current = byDate.get(d.key) || { date: d.key, lines: [] };
       byDate.set(d.key, current);
       if (d.rest) current.lines.push(d.rest);
+    } else if (/^\s*что меня беспокоит\s*\??\s*:?\s*$/i.test(line)) {
+      // заголовок дневника, а не часть записи
+      continue;
     } else if (current) {
       current.lines.push(line);
     } else if (line.trim()) {
@@ -115,7 +158,7 @@ export function render(root) {
       <textarea class="import-text" placeholder="Вставь заметки сюда" style="margin-top:14px"></textarea>
       <div class="actions">
         <button class="btn primary" data-act="parse">Разобрать</button>
-        <label class="btn ghost">Загрузить .txt<input type="file" accept=".txt,text/plain" hidden></label>
+        <label class="btn ghost">Загрузить файл<input type="file" accept=".txt,.json,text/plain,application/json" hidden></label>
       </div>
     </section>
     <section class="import-preview"></section>`;
