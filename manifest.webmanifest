@@ -1,0 +1,18 @@
+{
+  "name": "Баланс — дневник состояния",
+  "short_name": "Баланс",
+  "description": "Сон, состояние, энергия, дневник и дыхательные техники",
+  "lang": "ru",
+  "start_url": "./#/today",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F0E4",
+  "theme_color": "#F6F0E4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

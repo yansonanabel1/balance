@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Баланс</title>
+  <meta name="description" content="Личный дневник состояния: сон, настроение, энергия, дыхание">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F6F0E4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1B1A1F" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Баланс">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Lora:ital,wght@0,400;0,500;1,400&family=Manrope:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Применяем тему до отрисовки, чтобы не было вспышки
+    try {
+      var s = JSON.parse(localStorage.getItem('balance.v1') || '{}').settings || {};
+      if (s.theme === 'light' || s.theme === 'dark') document.documentElement.dataset.theme = s.theme;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <main id="view" class="view" tabindex="-1"></main>
+
+  <nav class="tabbar" aria-label="Разделы">
+    <a href="#/today" data-tab="today"><span class="ic" data-icon="home"></span><span class="lbl">Сегодня</span></a>
+    <a href="#/diary" data-tab="diary"><span class="ic" data-icon="book"></span><span class="lbl">Дневник</span></a>
+    <a href="#/charts" data-tab="charts"><span class="ic" data-icon="chart"></span><span class="lbl">Графики</span></a>
+    <a href="#/practices" data-tab="practices"><span class="ic" data-icon="leaf"></span><span class="lbl">Практики</span></a>
+    <a href="#/settings" data-tab="settings"><span class="ic" data-icon="gear"></span><span class="lbl">Настройки</span></a>
+  </nav>
+
+  <dialog id="crisis" class="sheet" aria-labelledby="crisis-title"></dialog>
+  <dialog id="sheet" class="sheet"></dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
