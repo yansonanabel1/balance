@@ -1,5 +1,5 @@
 // Офлайн-режим: сначала сеть (чтобы обновления приходили сразу), без сети — из кэша
-const CACHE = 'balance-v4';
+const CACHE = 'balance-v6';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const ASSETS = [
   './',
@@ -17,6 +17,7 @@ const ASSETS = [
   './js/practices-data.js',
   './js/views/practices.js',
   './js/views/report.js',
+  './js/views/import.js',
   './js/views/today.js',
   './js/views/checkin.js',
   './js/views/diary.js',
@@ -26,7 +27,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -55,8 +56,10 @@ self.addEventListener('fetch', (e) => {
   }
 
   if (url.origin !== location.origin) return;
+  // no-cache: всегда спрашиваем сервер, не изменился ли файл, — иначе браузер может
+  // отдавать старую версию из своего HTTP-кэша и обновления приходят с задержкой
   e.respondWith(
-    fetch(req)
+    fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy));

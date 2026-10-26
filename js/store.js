@@ -46,9 +46,36 @@ function normalize(s) {
   };
 }
 
+// Приложение может быть открыто в двух местах (вкладка браузера и установленное приложение).
+// Перед каждым изменением перечитываем хранилище, чтобы не затереть чужие свежие записи.
+let lastRaw = readRaw();
+
+function readRaw() {
+  try {
+    return localStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+}
+
+function fresh() {
+  const raw = readRaw();
+  if (raw === lastRaw) return false;
+  state = load();
+  lastRaw = raw;
+  return true;
+}
+
+// true — данные изменились снаружи и экран стоит перерисовать
+export function reload() {
+  return fresh();
+}
+
 function persist() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    const raw = JSON.stringify(state);
+    localStorage.setItem(KEY, raw);
+    lastRaw = raw;
     return true;
   } catch {
     return false;
@@ -89,6 +116,7 @@ export function getEntry(date) {
 }
 
 export function saveEntry(date, patch) {
+  fresh();
   const prev = state.entries[date];
   const now = Date.now();
   state.entries[date] = { ...prev, ...patch, date, createdAt: prev?.createdAt || now, updatedAt: now };
@@ -98,6 +126,7 @@ export function saveEntry(date, patch) {
 }
 
 export function deleteEntry(date) {
+  fresh();
   delete state.entries[date];
   const ok = persist();
   notify(date);
@@ -148,6 +177,7 @@ export function getLog(date) {
 }
 
 export function addBreathSeconds(date, secs) {
+  fresh();
   const prev = state.log[date] || {};
   state.log[date] = { ...prev, breathSecs: (prev.breathSecs || 0) + secs };
   return persist();
@@ -160,6 +190,7 @@ export function practiceState(id) {
 }
 
 export function toggleFavorite(id) {
+  fresh();
   const p = practiceState(id);
   state.practices[id] = { ...p, fav: !p.fav };
   persist();
@@ -167,6 +198,7 @@ export function toggleFavorite(id) {
 }
 
 export function addPracticeTry(id, rating) {
+  fresh();
   const p = practiceState(id);
   state.practices[id] = { ...p, tries: [...p.tries, { date: dateKey(), rating }] };
   return persist();
@@ -177,6 +209,7 @@ export function customPractices() {
 }
 
 export function saveCustomPractice(p) {
+  fresh();
   const i = state.custom.findIndex((x) => x.id === p.id);
   if (i >= 0) state.custom[i] = p;
   else state.custom.push(p);
@@ -184,6 +217,7 @@ export function saveCustomPractice(p) {
 }
 
 export function deleteCustomPractice(id) {
+  fresh();
   state.custom = state.custom.filter((x) => x.id !== id);
   delete state.practices[id];
   return persist();
@@ -196,6 +230,7 @@ export function emotionNote(name) {
 }
 
 export function saveEmotionNote(name, patch) {
+  fresh();
   state.emotionMap[name] = { ...emotionNote(name), ...patch };
   return persist();
 }
@@ -207,6 +242,7 @@ export function pendingDates() {
 }
 
 export function setPending(dates) {
+  fresh();
   state.pending = [...new Set(dates)];
   return persist();
 }
@@ -218,11 +254,13 @@ export function settings() {
 }
 
 export function updateTg(patch) {
+  fresh();
   state.settings = { ...state.settings, tg: { ...state.settings.tg, ...patch } };
   return persist();
 }
 
 export function updateSettings(patch) {
+  fresh();
   state.settings = { ...state.settings, ...patch };
   return persist();
 }

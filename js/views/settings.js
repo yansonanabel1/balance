@@ -65,6 +65,7 @@ export function render(root) {
       <p class="note">Записи хранятся на этом устройстве${isConfigured() ? ' и в Google-таблице через Жорика' : ''}. Время от времени сохраняй копию файлом.</p>
       ${backupNote(s.lastBackup)}
       <div class="actions">
+        <a class="btn sm ink" href="#/import">Перенести старые заметки</a>
         <button class="btn sm primary" data-act="export">Скачать копию</button>
         <label class="btn sm ghost">Загрузить из файла<input type="file" accept="application/json,.json" hidden></label>
       </div>

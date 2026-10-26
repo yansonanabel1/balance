@@ -1,3 +1,4 @@
+import * as store from './store.js';
 import { icon, applyTheme } from './ui.js';
 import * as today from './views/today.js';
 import * as checkin from './views/checkin.js';
@@ -7,6 +8,7 @@ import * as breathe from './views/breathe.js';
 import * as settings from './views/settings.js';
 import * as practices from './views/practices.js';
 import * as report from './views/report.js';
+import * as importNotes from './views/import.js';
 import { startSync } from './sync.js';
 
 const view = document.getElementById('view');
@@ -25,6 +27,7 @@ const ROUTES = {
   'practice-edit': { tab: 'practices', render: (root, [id]) => practices.renderEdit(root, { id }) },
   emotions: { tab: 'practices', render: practices.renderEmotions },
   report: { tab: null, render: report.render },
+  import: { tab: 'settings', render: importNotes.render },
   settings: { tab: 'settings', render: settings.render },
 };
 
@@ -55,6 +58,16 @@ for (const el of document.querySelectorAll('[data-icon]')) el.innerHTML = icon(e
 applyTheme();
 window.addEventListener('hashchange', route);
 route();
+
+// Данные могли поменяться в другой вкладке или в установленном приложении —
+// перечитываем и перерисовываем экран. Посреди отметки и форм не трогаем, чтобы не сбить ввод.
+function syncFromStorage() {
+  if (!store.reload()) return;
+  const name = location.hash.replace(/^#\/?/, '').split('/')[0];
+  if (!['checkin', 'practice-edit', 'emotions', 'import'].includes(name)) route();
+}
+window.addEventListener('storage', (ev) => { if (ev.key === 'balance.v1') syncFromStorage(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncFromStorage(); });
 startSync();
 
 // Android/Chrome отдаёт событие установки — сохраняем, чтобы показать свою кнопку «Установить»

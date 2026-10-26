@@ -17,6 +17,22 @@ const MED_OPTIONS = [
   ['none', 'Сегодня не нужно'],
 ];
 
+// «9,3», «9.3», «9:18», «9 ч 18 мин» → часы с десятыми
+function parseSleep(text) {
+  const t = String(text).trim().toLowerCase();
+  const hm = t.match(/^(\d{1,2})\s*(?::|ч[а-я.]*)\s*(\d{1,2})?\s*(?:м[а-я.]*)?$/);
+  if (hm) return Number(hm[1]) + Number(hm[2] || 0) / 60;
+  const n = Number(t.replace(',', '.'));
+  return t && Number.isFinite(n) ? n : null;
+}
+
+function hoursMinutes(v) {
+  const total = Math.round(v * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m ? `${h} ч ${m} мин` : `${h} ч`;
+}
+
 export function render(root, { date, step }) {
   const day = store.isDateKey(date) ? date : store.dateKey();
   let i = Math.max(0, STEPS.indexOf(step === 'diary' ? 'feelings' : step));
@@ -72,12 +88,14 @@ export function render(root, { date, step }) {
         <p class="hint">Цифру можно взять из Mi Fitness / Zepp Life</p>
         <div class="sleep-art">${art('moon')}</div>
         <div class="sleep-box">
-          <button class="round" data-act="minus" aria-label="Меньше на полчаса">−</button>
-          <output aria-live="polite">${fmtNum(v)}<small> ч</small></output>
-          <button class="round" data-act="plus" aria-label="Больше на полчаса">+</button>
+          <button class="round" data-act="minus" aria-label="Меньше на 6 минут">−</button>
+          <label class="sleep-value"><input type="text" inputmode="decimal" autocomplete="off" value="${fmtNum(v)}" aria-label="Часы сна, например 7,4 или 7:25"><small>ч</small></label>
+          <button class="round" data-act="plus" aria-label="Больше на 6 минут">+</button>
         </div>
-        <input type="range" min="0" max="14" step="0.5" value="${v}" aria-label="Часы сна">
-        <div class="range-legend"><span>0</span><span>7</span><span>14 ч</span></div>
+        <p class="sleep-hm" aria-live="polite">${hoursMinutes(v)}</p>
+        <input type="range" min="0" max="16" step="0.1" value="${v}" aria-label="Часы сна">
+        <div class="range-legend"><span>0</span><span>8</span><span>16 ч</span></div>
+        <p class="hint small" style="margin:10px 0 0;text-align:center">Нажми на цифру, чтобы ввести точно: 9,3 или 9:18</p>
         <div class="checkin-foot">
           <button class="btn primary wide" data-act="next">Дальше</button>
           <button class="link-btn" data-act="skip">Пропустить</button>
@@ -132,16 +150,26 @@ export function render(root, { date, step }) {
 
     if (key === 'sleep') {
       const range = root.querySelector('input[type="range"]');
-      const out = root.querySelector('output');
-      const set = (v) => {
-        v = Math.min(14, Math.max(0, v));
-        range.value = v;
-        out.innerHTML = `${fmtNum(v)}<small> ч</small>`;
+      const field = root.querySelector('.sleep-value input');
+      const hm = root.querySelector('.sleep-hm');
+      let value = Number(range.value);
+      // fromField — не переписываем поле, пока человек в нём печатает
+      const set = (v, fromField = false) => {
+        value = Math.round(Math.min(16, Math.max(0, v)) * 10) / 10;
+        range.value = value;
+        if (!fromField) field.value = fmtNum(value);
+        hm.textContent = hoursMinutes(value);
       };
       range.oninput = () => set(Number(range.value));
-      root.querySelector('[data-act="minus"]').onclick = () => set(Number(range.value) - 0.5);
-      root.querySelector('[data-act="plus"]').onclick = () => set(Number(range.value) + 0.5);
-      root.querySelector('[data-act="next"]').onclick = () => { save({ sleep: Number(range.value) }); next(); };
+      field.oninput = () => {
+        const v = parseSleep(field.value);
+        if (v != null) set(v, true);
+      };
+      field.onblur = () => set(value);
+      field.onfocus = () => field.select();
+      root.querySelector('[data-act="minus"]').onclick = () => set(value - 0.1);
+      root.querySelector('[data-act="plus"]').onclick = () => set(value + 0.1);
+      root.querySelector('[data-act="next"]').onclick = () => { save({ sleep: value }); next(); };
       return;
     }
 
