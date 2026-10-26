@@ -158,7 +158,8 @@ export function render(root) {
       <textarea class="import-text" placeholder="Вставь заметки сюда" style="margin-top:14px"></textarea>
       <div class="actions">
         <button class="btn primary" data-act="parse">Разобрать</button>
-        <label class="btn ghost">Загрузить файл<input type="file" accept=".txt,.json,text/plain,application/json" hidden></label>
+        <!-- без accept: Android часто не знает тип .json и прячет такие файлы; содержимое проверяем сами -->
+        <label class="btn ghost">Загрузить файл<input type="file" hidden></label>
       </div>
     </section>
     <section class="import-preview"></section>`;
@@ -168,8 +169,13 @@ export function render(root) {
 
   root.querySelector('input[type="file"]').onchange = async (ev) => {
     const file = ev.target.files[0];
+    ev.target.value = '';
     if (!file) return;
-    ta.value = await file.text();
+    if (file.size > 2 * 1024 * 1024) return toast('Файл слишком большой — нужен текстовый файл с заметками');
+    const text = await file.text();
+    // фото или документ Word вместо текста
+    if (text.includes('\u0000')) return toast('Это не текстовый файл. Выбери .txt или .json с заметками');
+    ta.value = text;
     root.querySelector('[data-act="parse"]').click();
   };
 
