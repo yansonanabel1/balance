@@ -33,9 +33,21 @@ function hoursMinutes(v) {
   return m ? `${h} ч ${m} мин` : `${h} ч`;
 }
 
+// Есть ли уже ответ на этом шаге
+function answered(key, entry) {
+  if (key === 'meds') return !!entry.meds;
+  if (key === 'feelings') return !!entry.text || !!entry.emotions?.length;
+  return typeof entry[key] === 'number';
+}
+
+const skipText = (key, entry) => (answered(key, entry) ? 'Оставить как есть' : 'Пропустить');
+
 export function render(root, { date, step }) {
   const day = store.isDateKey(date) ? date : store.dateKey();
-  let i = Math.max(0, STEPS.indexOf(step === 'diary' ? 'feelings' : step));
+  const start = store.getEntry(day) || {};
+  // Без явного шага продолжаем с первого незаполненного (пропущенные осознанно — не в счёт)
+  const firstOpen = STEPS.findIndex((k) => !answered(k, start) && !(start.skipped || []).includes(k));
+  let i = step ? Math.max(0, STEPS.indexOf(step === 'diary' ? 'feelings' : step)) : Math.max(0, firstOpen);
   let dir = 'fwd';
   let saveTimer = null;
 
@@ -64,7 +76,14 @@ export function render(root, { date, step }) {
     root.querySelector('[data-act="back"]').onclick = () => { if (i === 0) close(); else { dir = 'back'; i--; draw(); } };
     root.querySelector('[data-act="close"]').onclick = close;
     const skip = root.querySelector('[data-act="skip"]');
-    if (skip) skip.onclick = () => { save({ [key]: null }); next(); };
+    // Пропуск ничего не стирает: уже сохранённый ответ остаётся, новый шаг просто отмечается пропущенным
+    if (skip) {
+      skip.onclick = () => {
+        const current = store.getEntry(day) || {};
+        if (!answered(key, current)) save({ skipped: [...new Set([...(current.skipped || []), key])] });
+        next();
+      };
+    }
     bind(key, entry);
   }
 
@@ -78,7 +97,7 @@ export function render(root, { date, step }) {
         <p class="hint">${s.hint}</p>
         <div class="scale" role="group" aria-label="${s.title}">${buttons}</div>
         <div class="scale-legend"><span>1 — ${s.low}</span><span>10 — ${s.high}</span></div>
-        <div class="checkin-foot"><button class="link-btn" data-act="skip">Пропустить</button></div>`;
+        <div class="checkin-foot"><button class="link-btn" data-act="skip">${skipText(key, entry)}</button></div>`;
     }
 
     if (key === 'sleep') {
@@ -98,7 +117,7 @@ export function render(root, { date, step }) {
         <p class="hint small" style="margin:10px 0 0;text-align:center">Нажми на цифру, чтобы ввести точно: 9,3 или 9:18</p>
         <div class="checkin-foot">
           <button class="btn primary wide" data-act="next">Дальше</button>
-          <button class="link-btn" data-act="skip">Пропустить</button>
+          <button class="link-btn" data-act="skip">${skipText(key, entry)}</button>
         </div>`;
     }
 
