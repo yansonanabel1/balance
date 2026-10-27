@@ -1,6 +1,6 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { CATEGORIES, EMOTION_BODY, PRACTICES } from '../practices-data.js';
+import { CATEGORIES, EMOTION_STAGES, PRACTICES, STAGE_HELP, STAGE_LABELS } from '../practices-data.js';
 import { esc, icon, openSheet, plural, toast } from '../ui.js';
 
 let filter = 'all';
@@ -239,25 +239,39 @@ const FIELDS = [
 export function renderEmotions(root) {
   root.innerHTML = `
     <div class="detail-head"><a class="icon-btn" href="#/practices" aria-label="К практикам">${icon('back')}</a></div>
-    <header class="page-head"><span class="hand">из работы с психологом</span><h1 class="display">Эмоции в теле</h1></header>
-    <p class="muted" style="margin-top:-8px">Запиши, как каждая эмоция проявляется именно у тебя: первый сигнал, как растёт, что на пике и что помогает. Чем раньше заметишь — тем легче справиться.</p>
+    <header class="page-head"><span class="hand">5 ступеней силы</span><h1 class="display">Эмоции в теле</h1></header>
+    <p class="muted" style="margin-top:-8px">Как каждая эмоция ощущается в теле — от едва заметной до пика — и что помогает на каждой ступени. Чем раньше заметишь эмоцию, тем легче с ней справиться.</p>
     <div class="emo-list section">
-      ${EMOTION_BODY.map(([name, color, hint]) => {
-        const n = store.emotionNote(name);
+      ${EMOTION_STAGES.map((emo) => {
+        const n = store.emotionNote(emo.name);
         const filled = FIELDS.filter(([k]) => n[k]).length;
+        const help = STAGE_HELP[emo.kind];
         return `
         <details class="emo-card">
-          <summary class="${color} on-pastel">
-            <span><b>${name}</b><span class="muted">${filled ? `заполнено ${filled} из 4` : 'пока пусто'}</span></span>
+          <summary class="${emo.color} on-pastel">
+            <span><b>${emo.name}</b><span class="muted">5 ступеней${filled ? ` · мои заметки ${filled} из 4` : ''}</span></span>
             <span class="go">${icon('next')}</span>
           </summary>
-          <div class="emo-fields" data-emo="${name}">
-            <p class="small muted" style="margin:0">Часто бывает: ${hint}.</p>
+          <div class="emo-fields" data-emo="${esc(emo.name)}">
+            <ol class="ladder">
+              ${emo.stages.map((text, k) => `
+                <li class="lvl lvl-${k + 1} ${emo.kind}">
+                  <span class="lvl-n">${k + 1}</span>
+                  <div>
+                    <p class="lvl-name">${STAGE_LABELS[k]}</p>
+                    <p class="lvl-body">${esc(text)}</p>
+                    <p class="lvl-help"><b>Что помогает:</b> ${esc(help[k].text)}${help[k].link ? ` <a href="${help[k].link[0]}">${esc(help[k].link[1])} →</a>` : ''}</p>
+                  </div>
+                </li>`).join('')}
+            </ol>
+            ${emo.note ? `<p class="emo-note">${esc(emo.note)}</p>` : ''}
+            <p class="label" style="margin:10px 0 0">Мои наблюдения${filled ? ` · заполнено ${filled} из 4` : ''}</p>
             ${FIELDS.map(([k, l]) => `<label class="field"><span class="label">${l}</span><textarea data-k="${k}" rows="2">${esc(n[k] || '')}</textarea></label>`).join('')}
           </div>
         </details>`;
       }).join('')}
-    </div>`;
+    </div>
+    <p class="note section">Признаки собраны по материалам ДБТ (М. Линехан, «Способы описания эмоций», Emotion Regulation Handout 6), КПТ (Centre for Clinical Interventions, «Что такое тревога») и NIMH. Деление на 5 ступеней примерное: у каждого человека лестница своя, поэтому дополняй её своими наблюдениями.</p>`;
 
   // сохраняем по ходу набора
   let t = null;

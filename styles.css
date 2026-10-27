@@ -570,6 +570,30 @@ textarea:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .emo-card[open] summary .go { transform: rotate(90deg); }
 .emo-fields { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 18px; }
 .emo-fields textarea { min-height: 64px; }
+
+/* «Термометр» эмоции: 5 ступеней от едва заметной до пика */
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0; position: relative; }
+.lvl { display: grid; grid-template-columns: 32px 1fr; gap: 12px; padding: 10px 0; position: relative; }
+.lvl:not(:last-child)::after { content: ""; position: absolute; left: 15px; top: 44px; bottom: -10px; border-left: 2px dashed var(--line); }
+.lvl-n {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 500; color: var(--on-pastel);
+  background: var(--lvl, var(--surface-2)); position: relative; z-index: 1;
+}
+.lvl-name { margin: 4px 0 2px; font-weight: 700; font-size: 14px; }
+.lvl-body { margin: 0; line-height: 1.5; }
+.lvl-help { margin: 6px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.lvl-help b { color: var(--text); font-weight: 650; }
+.lvl-help a { color: var(--accent); white-space: nowrap; }
+.lvl.hard.lvl-1, .lvl.elevated.lvl-1 { --lvl: #BFE3C6; }
+.lvl.hard.lvl-2, .lvl.elevated.lvl-2 { --lvl: #DCEBB0; }
+.lvl.hard.lvl-3, .lvl.elevated.lvl-3 { --lvl: #F3DD8E; }
+.lvl.hard.lvl-4, .lvl.elevated.lvl-4 { --lvl: #F2B98C; }
+.lvl.hard.lvl-5, .lvl.elevated.lvl-5 { --lvl: #EE9A8C; }
+.lvl.positive, .lvl.calm { --lvl: var(--p-yellow); }
+.lvl.calm { --lvl: var(--p-green); }
+.emo-note { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--tone-low) 14%, transparent); font-size: 14px; line-height: 1.5; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field .label { margin: 0; }
 
