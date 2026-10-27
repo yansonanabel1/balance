@@ -1,6 +1,6 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { esc, icon } from '../ui.js';
+import { esc, gx, icon } from '../ui.js';
 
 // scale — размер шара в конце фазы (0.5 — выдохнуто, 1 — полный вдох); у задержки нет scale
 const TECHNIQUES = [
@@ -108,7 +108,7 @@ function renderSession(root, tech) {
       <div class="orb-wrap">
         <div class="orb-ring"></div>
         <div class="orb t-${tech.id}"></div>
-        <div class="orb-label" aria-live="polite"><span class="phase">Готова?</span><span class="count"></span></div>
+        <div class="orb-label" aria-live="polite"><span class="phase">${gx('{Готова|Готов}?')}</span><span class="count"></span></div>
       </div>
       <div class="wave wave-big ${tech.color}"><svg viewBox="0 0 ${WW} ${WH}" aria-hidden="true">
         <path d="${wave(tech, WW, WH)}"/>

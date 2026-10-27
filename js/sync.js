@@ -1,5 +1,5 @@
-// Связь с Жориком (DariaAssistant, Balance.gs): отметки уходят в его Web App → лист BALANCE,
-// а Жорик по расписанию напоминает в Telegram, если отметки за день нет.
+// Связь со своим Telegram-ботом через Google Apps Script: отметки уходят в Web App → лист таблицы,
+// а бот по расписанию напоминает в Telegram, если отметки за день нет.
 import * as store from './store.js';
 
 let timer = null;
@@ -19,7 +19,7 @@ export async function call(payload) {
   const res = await fetch(c.url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    // source: 'balance' — по нему doPost Жорика отличает нас от Telegram webhook
+    // source: 'balance' — по нему скрипт отличает нас от Telegram webhook
     body: JSON.stringify({ ...payload, source: 'balance', secret: c.secret }),
   });
   const data = await res.json();

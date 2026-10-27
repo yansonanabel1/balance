@@ -1,5 +1,5 @@
 // Офлайн-режим: сначала сеть (чтобы обновления приходили сразу), без сети — из кэша
-const CACHE = 'balance-v10';
+const CACHE = 'balance-v11';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const ASSETS = [
   './',
@@ -18,6 +18,8 @@ const ASSETS = [
   './js/views/practices.js',
   './js/views/report.js',
   './js/views/import.js',
+  './js/views/feedback.js',
+  './js/config.js',
   './js/views/today.js',
   './js/views/checkin.js',
   './js/views/diary.js',

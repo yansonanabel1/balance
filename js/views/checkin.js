@@ -1,6 +1,6 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { EMOTIONS, esc, fmtDate, fmtNum, icon, plural, promptOfDay, scaleTone } from '../ui.js';
+import { EMOTIONS, esc, fmtDate, fmtNum, gx, icon, plural, promptOfDay, scaleTone } from '../ui.js';
 
 const STEPS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'meds', 'feelings'];
 
@@ -12,8 +12,8 @@ const SCALES = {
 };
 
 const MED_OPTIONS = [
-  ['taken', 'Приняла'],
-  ['missed', 'Пропустила'],
+  ['taken', '{Приняла|Принял}'],
+  ['missed', '{Пропустила|Пропустил}'],
   ['none', 'Сегодня не нужно'],
 ];
 
@@ -103,8 +103,8 @@ export function render(root, { date, step }) {
     if (key === 'sleep') {
       const v = typeof entry.sleep === 'number' ? entry.sleep : store.lastValue('sleep', day) ?? 7;
       return `
-        <h1 class="q">Сколько ты спала этой ночью?</h1>
-        <p class="hint">Цифру можно взять из Mi Fitness / Zepp Life</p>
+        <h1 class="q">${gx('Сколько ты {спала|спал} этой ночью?')}</h1>
+        <p class="hint">Цифру можно взять из фитнес-браслета или приложения сна</p>
         <div class="sleep-art">${art('moon')}</div>
         <div class="sleep-box">
           <button class="round" data-act="minus" aria-label="Меньше на 6 минут">−</button>
@@ -127,7 +127,7 @@ export function render(root, { date, step }) {
       return `
         <h1 class="q">Лекарства и цикл</h1>
         <p class="hint">Как сегодня с приёмом?</p>
-        <div class="choices">${MED_OPTIONS.map(([v, label]) => choice(v, label, entry.meds === v)).join('')}</div>
+        <div class="choices">${MED_OPTIONS.map(([v, label]) => choice(v, gx(label), entry.meds === v)).join('')}</div>
         <label class="switch-row">
           <span><b>Сегодня начались месячные</b><span class="cycle-hint">${cycleHint}</span></span>
           <span class="switch"><input type="checkbox" ${entry.periodStart ? 'checked' : ''}><i></i></span>

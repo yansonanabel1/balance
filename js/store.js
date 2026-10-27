@@ -5,10 +5,12 @@ const KEY = 'balance.v1';
 const DEFAULT_SETTINGS = {
   theme: 'auto',
   name: '',
+  // род обращения в текстах: 'f' — женский, 'm' — мужской
+  gender: 'f',
   contacts: [{ name: 'Экстренные службы', phone: '112' }],
   lastBackup: null,
   installHintHidden: false,
-  // Telegram-напоминания через Жорика (Apps Script)
+  // Telegram-напоминания через свой бот (Apps Script)
   tg: { url: '', secret: '', morningHour: 9, followUpHour: 13, sendText: false },
 };
 

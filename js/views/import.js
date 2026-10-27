@@ -72,7 +72,7 @@ function extractMetrics(text) {
     const v = Number(m[1].replace(',', '.'));
     return Number.isFinite(v) && v >= 0 && v <= max ? v : undefined;
   };
-  out.sleep = num(/(?:сон|спала|поспала)[^\d\n]{0,12}(\d{1,2}(?:[.,]\d)?)/i, 16);
+  out.sleep = num(/(?:сон|спала?|поспала?)[^\d\n]{0,12}(\d{1,2}(?:[.,]\d)?)/i, 16);
   out.state = num(/(?:состояние|настроение)[^\d\n]{0,10}(\d{1,2})(?!\d)/i, 10);
   out.energy = num(/энерги[яиюей][^\d\n]{0,10}(\d{1,2})(?!\d)/i, 10);
   out.anxiety = num(/тревог[аиуе][^\d\n]{0,10}(\d{1,2})(?!\d)/i, 10);
@@ -83,8 +83,9 @@ function extractMetrics(text) {
   return out;
 }
 
-// Готовый файл с записями (.json): { entries: [{ date, sleep, state, ... text }] }.
+// Готовый файл (.json): { entries: [{ date, sleep, state, ... text }], practices: [...] }.
 // В отличие от «Загрузить из файла» в настройках, он не заменяет данные, а дописывает.
+// practices — свои практики (например, набор от своего психолога): добавляются или обновляются по id.
 const JSON_FIELDS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'text'];
 
 function parseJsonNotes(raw) {
@@ -94,7 +95,10 @@ function parseJsonNotes(raw) {
   } catch {
     return null;
   }
-  const list = Array.isArray(data) ? data : Array.isArray(data?.entries) ? data.entries : data?.entries && typeof data.entries === 'object' ? Object.values(data.entries) : null;
+  const practices = Array.isArray(data?.practices)
+    ? data.practices.filter((p) => p && typeof p.id === 'string' && typeof p.title === 'string' && p.title.trim())
+    : [];
+  const list = Array.isArray(data) ? data : Array.isArray(data?.entries) ? data.entries : data?.entries && typeof data.entries === 'object' ? Object.values(data.entries) : practices.length ? [] : null;
   if (!list) return null;
   const notes = list
     .filter((e) => e && store.isDateKey(e.date))
@@ -107,7 +111,7 @@ function parseJsonNotes(raw) {
       return n;
     });
   notes.sort((a, b) => b.date.localeCompare(a.date));
-  return { notes, skipped: 0 };
+  return { notes, skipped: 0, practices };
 }
 
 export function parseNotes(raw) {
@@ -149,7 +153,7 @@ export function render(root) {
     <section class="card">
       <p style="margin-top:0">Скопируй заметки «Что меня беспокоит?» целиком и вставь сюда, или загрузи .txt-файл. Каждая запись должна начинаться с даты на отдельной строке:</p>
       <pre class="sample">26.10
-Спала плохо, сон 6. Состояние 5, энергия 4.
+Сон 6 ч. Состояние 5, энергия 4.
 Переживаю из-за работы…
 
 25 октября
@@ -180,19 +184,24 @@ export function render(root) {
   };
 
   root.querySelector('[data-act="parse"]').onclick = () => {
-    const { notes, skipped } = parseNotes(ta.value);
-    if (!notes.length) {
+    const { notes, skipped, practices = [] } = parseNotes(ta.value);
+    if (!notes.length && !practices.length) {
       preview.innerHTML = `<div class="empty-state section">${art('notebook')}<p>Не нашла ни одной даты в начале строки. Проверь, что каждая запись начинается с даты, например <b>26.10</b>.</p></div>`;
       return;
     }
     const existing = notes.filter((n) => store.getEntry(n.date)).length;
+    const found = [
+      notes.length ? `${notes.length} ${plural(notes.length, ['запись', 'записи', 'записей'])}` : '',
+      practices.length ? `${practices.length} ${plural(practices.length, ['практику', 'практики', 'практик'])}` : '',
+    ].filter(Boolean).join(' и ');
     preview.innerHTML = `
-      <div class="section-title section"><h2 class="h2">Нашла ${notes.length} ${plural(notes.length, ['запись', 'записи', 'записей'])}</h2></div>
+      <div class="section-title section"><h2 class="h2">Нашла ${found}</h2></div>
+      ${practices.length ? `<p class="note" style="margin-top:-6px">Практики появятся в разделе «Практики → От моего психолога»: ${practices.map((p) => esc(p.title)).join(', ')}.</p>` : ''}
       <p class="note" style="margin-top:-6px">
         ${existing ? `Для ${existing} ${plural(existing, ['дня', 'дней', 'дней'])} запись уже есть — текст допишется в конец, а оценки не перезапишутся. ` : ''}
         ${skipped ? `Строк до первой даты: ${skipped} — их пропущу.` : ''}
       </p>
-      <button class="btn primary wide" data-act="import" style="margin:6px 0 14px">Импортировать ${notes.length} ${plural(notes.length, ['запись', 'записи', 'записей'])}</button>
+      <button class="btn primary wide" data-act="import" style="margin:6px 0 14px">Импортировать ${found}</button>
       <div class="entry-list">
         ${notes.map((n) => `
           <div class="card entry-card">
@@ -214,8 +223,9 @@ export function render(root) {
         }
         if (Object.keys(patch).length) store.saveEntry(n.date, { ...patch, imported: true });
       }
-      toast(`Перенесено записей: ${notes.length}`);
-      location.hash = '#/diary';
+      for (const p of practices) store.saveCustomPractice(p);
+      toast(`Перенесено: ${found}`);
+      location.hash = notes.length ? '#/diary' : '#/practices';
     };
   };
 }

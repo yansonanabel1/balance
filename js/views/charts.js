@@ -78,7 +78,7 @@ export function insights(today, forDoctor = false) {
   const s3 = vals('sleep', 0, 2), s14 = vals('sleep', 3, 16);
   if (s3.length >= 2 && s14.length >= 5) {
     const d = mean(s3) - mean(s14);
-    if (d <= -1.5) list.push(['pink', say(`Последние дни ты спишь в среднем на ${r1(-d)} ч меньше обычного. При БАР резкое сокращение сна бывает ранним сигналом — обрати внимание, а если держится, расскажи врачу.`, `Сон за последние 3 дня в среднем на ${r1(-d)} ч короче, чем в предыдущие 2 недели.`)]);
+    if (d <= -1.5) list.push(['pink', say(`Последние дни ты спишь в среднем на ${r1(-d)} ч меньше обычного. Резкое сокращение сна бывает ранним сигналом перемен в состоянии — обрати внимание, а если держится, расскажи врачу.`, `Сон за последние 3 дня в среднем на ${r1(-d)} ч короче, чем в предыдущие 2 недели.`)]);
     else if (d >= 1.5) list.push(['lilac', say(`Последние дни ты спишь на ${r1(d)} ч больше обычного. Посмотри, как при этом энергия и настроение.`, `Сон за последние 3 дня в среднем на ${r1(d)} ч длиннее, чем в предыдущие 2 недели.`)]);
   }
 
@@ -206,7 +206,7 @@ export function marksCard(entries) {
     `<text x="${PL - 4}" y="40" text-anchor="end">Цикл</text>`,
   ];
   entries.forEach((e, i) => {
-    if (e.meds === 'taken') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-high)"><title>Приняла</title></circle>`);
+    if (e.meds === 'taken') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-high)"><title>Приём</title></circle>`);
     if (e.meds === 'missed') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-low)"><title>Пропуск</title></circle>`);
     if (e.periodStart) parts.push(`<circle cx="${xc(i)}" cy="37" r="${r}" style="fill:var(--c-anxiety)"><title>Начало цикла</title></circle>`);
   });
@@ -219,8 +219,8 @@ export function marksCard(entries) {
         ${parts.join('')}
       </svg></div>
       <div class="marks-legend">
-        <span><i class="dot-sw" style="width:10px;height:10px;border-radius:50%;background:var(--tone-high);display:inline-block"></i>Приняла</span>
-        <span><i style="width:10px;height:10px;border-radius:50%;background:var(--tone-low);display:inline-block"></i>Пропустила</span>
+        <span><i class="dot-sw" style="width:10px;height:10px;border-radius:50%;background:var(--tone-high);display:inline-block"></i>Приём</span>
+        <span><i style="width:10px;height:10px;border-radius:50%;background:var(--tone-low);display:inline-block"></i>Пропуск</span>
         <span><i style="width:10px;height:10px;border-radius:50%;background:var(--c-anxiety);display:inline-block"></i>Начало цикла</span>
       </div>
     </section>`;

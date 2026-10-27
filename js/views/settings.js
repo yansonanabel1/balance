@@ -25,6 +25,10 @@ export function render(root) {
     <section class="card">
       <h2 class="h2">Как к тебе обращаться</h2>
       <input class="input" data-f="name" style="margin-top:12px" placeholder="Имя" value="${esc(s.name || '')}" aria-label="Имя" autocomplete="given-name">
+      <div class="seg" role="group" aria-label="Обращение" style="margin-top:12px">
+        <button data-gender="f" aria-pressed="${s.gender !== 'm'}">в женском роде</button>
+        <button data-gender="m" aria-pressed="${s.gender === 'm'}">в мужском роде</button>
+      </div>
     </section>
 
     <section class="section card">
@@ -35,11 +39,11 @@ export function render(root) {
     </section>
 
     <section class="section tile bg-blue on-pastel tg">
-      <div class="tg-head"><div><p class="eyebrow muted">Напоминания</p><h3>Жорик в Telegram</h3></div>${art('comma')}</div>
-      <p class="muted small" style="margin:4px 0 14px">Если утренней отметки нет — Жорик напишет. Все отметки сохраняются в его таблицу, лист BALANCE, а в Telegram работает команда /balance. Как подключить — в файле <b>telegram/README.md</b>.</p>
+      <div class="tg-head"><div><p class="eyebrow muted">Напоминания</p><h3>Свой бот в Telegram</h3></div>${art('comma')}</div>
+      <p class="muted small" style="margin:4px 0 14px">Если утренней отметки нет — бот напишет в Telegram, а отметки сохранятся в твою Google-таблицу. Это необязательно. Как подключить — в <a href="guide.html#bot">инструкции</a>.</p>
       <div class="list">
-        <label class="field"><span class="label">URL Жорика (WEB_APP_URL, без ?key=)</span><input class="input" data-tg="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(s.tg.url)}"></label>
-        <label class="field"><span class="label">Ключ (BALANCE_SECRET)</span><input class="input" data-tg="secret" type="password" autocomplete="off" value="${esc(s.tg.secret)}"></label>
+        <label class="field"><span class="label">Адрес веб-приложения Apps Script (…/exec)</span><input class="input" data-tg="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" value="${esc(s.tg.url)}"></label>
+        <label class="field"><span class="label">Ключ (SECRET)</span><input class="input" data-tg="secret" type="password" autocomplete="off" value="${esc(s.tg.secret)}"></label>
         <div class="row-2">
           <label class="field"><span class="label">Утром в</span><select class="input" data-tg="morningHour">${hourOptions(5, 12, s.tg.morningHour)}</select></label>
           <label class="field"><span class="label">Повторно в</span><select class="input" data-tg="followUpHour"><option value="" ${s.tg.followUpHour == null || s.tg.followUpHour === '' ? 'selected' : ''}>не нужно</option>${hourOptions(10, 22, s.tg.followUpHour)}</select></label>
@@ -62,7 +66,7 @@ export function render(root) {
 
     <section class="section card">
       <h2 class="h2">Резервная копия</h2>
-      <p class="note">Записи хранятся на этом устройстве${isConfigured() ? ' и в Google-таблице через Жорика' : ''}. Время от времени сохраняй копию файлом.</p>
+      <p class="note">Записи хранятся на этом устройстве${isConfigured() ? ' и в твоей Google-таблице' : ''}. Время от времени сохраняй копию файлом.</p>
       ${backupNote(s.lastBackup)}
       <div class="actions">
         <a class="btn sm ink" href="#/import">Перенести старые заметки</a>
@@ -77,7 +81,13 @@ export function render(root) {
         <li><b>Android (Chrome):</b> меню ⋮ → «Добавить на главный экран» или «Установить приложение».</li>
         <li><b>iPhone (Safari):</b> кнопка «Поделиться» → «На экран „Домой“».</li>
       </ol>
-      <p class="note">Приложение должно быть открыто по адресу https — сейчас оно работает только на компьютере, публикация будет следующим шагом.</p>
+      <p class="note">Подробно, с картинками шагов, — в <a href="guide.html">инструкции</a>. Ей же можно поделиться с другом: у каждого свои записи, они хранятся только в его телефоне.</p>
+    </section>
+
+    <section class="section card">
+      <h2 class="h2">Отзывы и идеи</h2>
+      <p class="note">Что добавить, что мешает, что сломалось — напиши, и это учтут при доработке.</p>
+      <a class="btn sm primary" style="margin-top:12px" href="#/feedback">${icon('send')} Написать отзыв</a>
     </section>
 
     <section class="section card">
@@ -93,6 +103,14 @@ export function render(root) {
     toast('Имя сохранено');
   };
 
+  for (const b of root.querySelectorAll('[data-gender]')) {
+    b.onclick = () => {
+      store.updateSettings({ gender: b.dataset.gender });
+      root.querySelectorAll('[data-gender]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      toast('Сохранено');
+    };
+  }
+
   for (const b of root.querySelectorAll('[data-theme]')) {
     b.onclick = () => {
       store.updateSettings({ theme: b.dataset.theme });
@@ -101,13 +119,13 @@ export function render(root) {
     };
   }
 
-  // --- Жорик ---
+  // --- свой Telegram-бот ---
   const status = root.querySelector('.status');
   root.querySelector('[data-act="tg-save"]').onclick = async (ev) => {
     const val = (k) => root.querySelector(`[data-tg="${k}"]`);
     const url = val('url').value.trim();
     const secret = val('secret').value.trim();
-    // пустые поля — значит, отключить Жорика
+    // пустые поля — значит, отключить напоминания
     if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) {
       status.className = 'status err';
       status.textContent = 'Похоже, это не адрес Apps Script — он начинается с https://script.google.com/';
@@ -133,7 +151,7 @@ export function render(root) {
       await sendTest();
       const synced = await pushAll();
       status.className = 'status ok';
-      status.textContent = synced ? 'Готово! Жорик прислал тестовое сообщение, отметки отправлены в таблицу.' : 'Жорик на связи, но часть отметок не ушла — попробую позже.';
+      status.textContent = synced ? 'Готово! Бот прислал тестовое сообщение, отметки отправлены в таблицу.' : 'Бот на связи, но часть отметок не ушла — попробую позже.';
     } catch (e) {
       status.className = 'status err';
       status.textContent = `Не получилось: ${e.message}. Проверь URL, ключ и что веб-приложение доступно «Всем».`;

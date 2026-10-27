@@ -1,0 +1,156 @@
+/**
+ * «Баланс» — напоминания в Telegram и копия отметок в Google-таблице.
+ *
+ * Как поставить — инструкция: https://yansonanabel1.github.io/balance/guide.html#bot
+ *
+ * Скрипт:
+ *  1) принимает отметки из приложения «Баланс» и пишет их в эту таблицу (лист «Баланс»);
+ *  2) раз в час проверяет, есть ли отметка за сегодня, и если нет — пишет напоминание в Telegram.
+ * Бот только отправляет сообщения, поэтому можно использовать и уже существующего бота.
+ *
+ * Свойства скрипта (Настройки проекта → Свойства скрипта):
+ *   BOT_TOKEN — токен бота от @BotFather
+ *   CHAT_ID   — твой Telegram ID (узнать у @userinfobot)
+ *   SECRET    — любой длинный пароль; тот же вписывается в приложении
+ */
+
+var PROPS = PropertiesService.getScriptProperties();
+var SHEET_NAME = 'Баланс';
+var HEADERS = ['Дата', 'Сон, ч', 'Состояние', 'Энергия', 'Тревога', 'Раздражительность', 'Лекарства', 'Начало цикла', 'Чувства', 'Запись', 'Обновлено'];
+var MEDS = { taken: 'принято', missed: 'пропуск', none: 'не нужно' };
+
+// ---------- приём данных из приложения ----------
+
+function doPost(e) {
+  var data;
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return json({ ok: false, error: 'bad json' });
+  }
+  if (!data.secret || data.secret !== PROPS.getProperty('SECRET')) return json({ ok: false, error: 'неверный ключ' });
+
+  try {
+    if (data.action === 'entries') {
+      (data.entries || []).forEach(upsertEntry);
+      return json({ ok: true });
+    }
+    if (data.action === 'config') {
+      PROPS.setProperty('CONFIG', JSON.stringify(data.config || {}));
+      return json({ ok: true });
+    }
+    if (data.action === 'test') {
+      return json(send('Привет! Связь с «Балансом» работает — буду напоминать про утреннюю отметку 🌿') ? { ok: true } : { ok: false, error: 'не удалось отправить сообщение в Telegram' });
+    }
+  } catch (err) {
+    return json({ ok: false, error: String(err.message || err) });
+  }
+  return json({ ok: false, error: 'unknown action' });
+}
+
+function doGet() {
+  return json({ ok: true, app: 'balance' });
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------- таблица ----------
+
+function sheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_NAME, ss.getSheets().length);
+    sh.appendRow(HEADERS);
+    sh.setFrozenRows(1);
+    sh.getRange('A:A').setNumberFormat('@'); // дата как текст, чтобы искать по ней
+  }
+  return sh;
+}
+
+function findRow(sh, date) {
+  var last = sh.getLastRow();
+  if (last < 2) return -1;
+  var dates = sh.getRange(2, 1, last - 1, 1).getDisplayValues();
+  for (var i = 0; i < dates.length; i++) if (dates[i][0] === date) return i + 2;
+  return -1;
+}
+
+// защита от формул в ячейках: текст, начинающийся с =, +, -, @, сохраняется как текст
+function safe(text) {
+  text = String(text || '');
+  return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+function upsertEntry(e) {
+  if (!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.date)) return;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sh = sheet();
+    var row = findRow(sh, e.date);
+    if (e.deleted) {
+      if (row > 0) sh.deleteRow(row);
+      return;
+    }
+    var v = function(x) { return typeof x === 'number' ? x : ''; };
+    var values = [
+      e.date, v(e.sleep), v(e.state), v(e.energy), v(e.anxiety), v(e.irritability),
+      MEDS[e.meds] || '', e.periodStart ? 'да' : '', safe((e.emotions || []).join(', ')), safe(e.text), new Date()
+    ];
+    if (row > 0) sh.getRange(row, 1, 1, values.length).setValues([values]);
+    else sh.appendRow(values);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ---------- напоминания ----------
+
+// Запускается триггером раз в час
+function remind() {
+  var cfg = JSON.parse(PROPS.getProperty('CONFIG') || '{"morningHour":9,"followUpHour":13}');
+  var tz = Session.getScriptTimeZone();
+  var now = new Date();
+  var hour = Number(Utilities.formatDate(now, tz, 'H'));
+  var today = Utilities.formatDate(now, tz, 'yyyy-MM-dd');
+  var isMorning = cfg.morningHour != null && hour === Number(cfg.morningHour) && PROPS.getProperty('LAST_MORNING') !== today;
+  var isFollowUp = cfg.followUpHour != null && hour === Number(cfg.followUpHour) && PROPS.getProperty('LAST_FOLLOWUP') !== today;
+  if (!isMorning && !isFollowUp) return;
+  if (findRow(sheet(), today) > 0) return;
+
+  var link = cfg.appUrl && /^https:\/\//.test(cfg.appUrl) ? '\n\nОткрыть «Баланс»: ' + cfg.appUrl : '';
+  if (isMorning) {
+    send('Доброе утро! ☀️ Как спалось?\nОтметь сон, состояние и энергию в «Балансе» — это пара минут.' + link);
+    PROPS.setProperty('LAST_MORNING', today);
+  } else {
+    send('Напоминаю про отметку в «Балансе» 🌿 Даже пара цифр лучше, чем ничего.' + link);
+    PROPS.setProperty('LAST_FOLLOWUP', today);
+  }
+}
+
+function send(text) {
+  var token = PROPS.getProperty('BOT_TOKEN');
+  var chatId = PROPS.getProperty('CHAT_ID');
+  if (!token || !chatId) throw new Error('Не заданы BOT_TOKEN или CHAT_ID в свойствах скрипта');
+  var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ chat_id: chatId, text: text }),
+    muteHttpExceptions: true,
+  });
+  return res.getResponseCode() === 200;
+}
+
+// ---------- установка: запустить один раз вручную из редактора ----------
+
+function setup() {
+  ScriptApp.getProjectTriggers()
+    .filter(function(t) { return t.getHandlerFunction() === 'remind'; })
+    .forEach(function(t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('remind').timeBased().everyHours(1).create();
+  sheet();
+  send('Бот подключён к «Балансу» ✅');
+}

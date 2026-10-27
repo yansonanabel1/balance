@@ -1,18 +1,23 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
 import { CATEGORIES, EMOTION_STAGES, PRACTICES, STAGE_HELP, STAGE_LABELS } from '../practices-data.js';
-import { esc, icon, openSheet, plural, toast } from '../ui.js';
+import { esc, gx, icon, openSheet, plural, toast } from '../ui.js';
+
+// текст практики в нужном роде и безопасный для HTML
+const tx = (s) => esc(gx(s));
 
 let filter = 'all';
 
 const SOURCE_LABEL = { psy: 'От психолога', 'КПТ': 'КПТ', 'ДБТ': 'ДБТ', 'Тело': 'Тело' };
 
-// встроенные + свои (свои всегда «от психолога»)
+// свои (всегда «от психолога») + встроенные. Своя практика с тем же id заменяет встроенную —
+// так личная версия, например «Холод» от своего психолога, показывается вместо общей.
 function all() {
   const custom = store.customPractices().map((p) => ({
     color: 'bg-lilac', art: 'sprout', cat: [], time: '', short: p.when || '', ...p, source: 'psy', custom: true,
   }));
-  return [...PRACTICES.filter((p) => p.source === 'psy'), ...custom, ...PRACTICES.filter((p) => p.source !== 'psy')];
+  const own = new Set(custom.map((p) => p.id));
+  return [...custom, ...PRACTICES.filter((p) => !own.has(p.id))];
 }
 
 export function find(id) {
@@ -41,8 +46,8 @@ function row(p) {
     <a class="pcard" href="#/practice/${encodeURIComponent(p.id)}">
       <span class="pcard-art ${p.color}">${art(p.art)}</span>
       <span class="pcard-body">
-        <b>${esc(p.title)}</b>
-        <span>${esc(p.short)}</span>
+        <b>${tx(p.title)}</b>
+        <span>${tx(p.short)}</span>
         ${meta(p) ? `<small>${meta(p)}</small>` : ''}
       </span>
       ${s.fav ? `<span class="pcard-fav">${icon('heart')}</span>` : ''}
@@ -53,8 +58,8 @@ function tile(p) {
   return `
     <a class="tile ${p.color}" href="#/practice/${encodeURIComponent(p.id)}">
       <p class="eyebrow muted">${SOURCE_LABEL[p.source]}</p>
-      <h3>${esc(p.title)}</h3>
-      <p class="muted">${esc(p.short)}</p>
+      <h3>${tx(p.title)}</h3>
+      <p class="muted">${tx(p.short)}</p>
       ${art(p.art)}
     </a>`;
 }
@@ -85,7 +90,7 @@ export function renderList(root) {
       holder.innerHTML = `
         <section class="section">
           <div class="section-title"><h2 class="h2">От моего психолога</h2><span class="hand">лично для меня</span></div>
-          <div class="pcards">${psy.map(row).join('')}</div>
+          ${psy.length ? `<div class="pcards">${psy.map(row).join('')}</div>` : '<p class="note" style="margin:0">Здесь будут упражнения, которые дал твой психолог или врач. Запиши их своими словами — так легче вспомнить в нужный момент.</p>'}
           <a class="btn ghost wide" style="margin-top:12px" href="#/practice-edit/new">${icon('plus')} Добавить практику от психолога</a>
         </section>
         <section class="section">
@@ -131,18 +136,18 @@ export function renderPractice(root, { id }) {
         ${art(p.art)}
       </section>
 
-      <h1 class="display" style="margin-top:18px">${esc(p.title)}</h1>
-      ${p.short ? `<p class="lead-text">${esc(p.short)}</p>` : ''}
+      <h1 class="display" style="margin-top:18px">${tx(p.title)}</h1>
+      ${p.short ? `<p class="lead-text">${tx(p.short)}</p>` : ''}
       ${s.count ? `<p class="small muted">${meta(p)}</p>` : ''}
 
-      ${p.when ? `<section class="section card"><p class="label">Когда помогает</p><p class="body-text">${esc(p.when)}</p>${p.why ? `<p class="label" style="margin-top:14px">Зачем</p><p class="body-text">${esc(p.why)}</p>` : ''}</section>` : ''}
+      ${p.when ? `<section class="section card"><p class="label">Когда помогает</p><p class="body-text">${tx(p.when)}</p>${p.why ? `<p class="label" style="margin-top:14px">Зачем</p><p class="body-text">${tx(p.why)}</p>` : ''}</section>` : ''}
 
       <section class="section">
         <div class="section-title"><h2 class="h2">Задание</h2><span class="hand">по шагам</span></div>
-        <ol class="steps-list">${(p.steps || []).map((st) => `<li>${esc(st)}</li>`).join('')}</ol>
+        <ol class="steps-list">${(p.steps || []).map((st) => `<li>${tx(st)}</li>`).join('')}</ol>
       </section>
 
-      ${p.tip ? `<section class="section prompt-card bg-yellow on-pastel"><p class="eyebrow">Подсказка</p><p>${esc(p.tip)}</p></section>` : ''}
+      ${p.tip ? `<section class="section prompt-card bg-yellow on-pastel"><p class="eyebrow">Подсказка</p><p>${tx(p.tip)}</p></section>` : ''}
       ${p.link ? `<a class="btn ghost wide section" href="${p.link.href}">${esc(p.link.label)}</a>` : ''}
 
       ${p.custom ? `<div class="actions">
@@ -217,6 +222,7 @@ export function renderEdit(root, { id }) {
     const title = String(f.get('title')).trim();
     if (!title) return;
     const saved = {
+      ...existing,
       id: existing?.id || `c-${Date.now()}`,
       title,
       when: String(f.get('when')).trim(),
@@ -235,6 +241,14 @@ const FIELDS = [
   ['peak', 'На пике'],
   ['help', 'Что помогает'],
 ];
+
+// Ссылка на практику показывается, только если такая практика есть у этого человека
+function helpLink(link) {
+  if (!link) return '';
+  const id = link[0].startsWith('#/practice/') ? link[0].slice('#/practice/'.length) : null;
+  if (id && !find(id)) return '';
+  return ` <a href="${link[0]}">${esc(id ? gx(find(id).title) : link[1])} →</a>`;
+}
 
 export function renderEmotions(root) {
   root.innerHTML = `
@@ -259,12 +273,12 @@ export function renderEmotions(root) {
                   <span class="lvl-n">${k + 1}</span>
                   <div>
                     <p class="lvl-name">${STAGE_LABELS[k]}</p>
-                    <p class="lvl-body">${esc(text)}</p>
-                    <p class="lvl-help"><b>Что помогает:</b> ${esc(help[k].text)}${help[k].link ? ` <a href="${help[k].link[0]}">${esc(help[k].link[1])} →</a>` : ''}</p>
+                    <p class="lvl-body">${tx(text)}</p>
+                    <p class="lvl-help"><b>Что помогает:</b> ${tx(help[k].text)}${helpLink(help[k].link)}</p>
                   </div>
                 </li>`).join('')}
             </ol>
-            ${emo.note ? `<p class="emo-note">${esc(emo.note)}</p>` : ''}
+            ${emo.note ? `<p class="emo-note">${tx(emo.note)}</p>` : ''}
             <p class="label" style="margin:10px 0 0">Мои наблюдения${filled ? ` · заполнено ${filled} из 4` : ''}</p>
             ${FIELDS.map(([k, l]) => `<label class="field"><span class="label">${l}</span><textarea data-k="${k}" rows="2">${esc(n[k] || '')}</textarea></label>`).join('')}
           </div>

@@ -1,6 +1,7 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { esc, fmtDate, greeting, icon, metricChips, plural, stateColor } from '../ui.js';
+import { esc, fmtDate, greeting, gx, icon, metricChips, plural, stateColor } from '../ui.js';
+import { find as findPractice } from './practices.js';
 
 export function render(root) {
   const today = store.dateKey();
@@ -163,14 +164,14 @@ export function openCrisis() {
   dlg.innerHTML = `
     <div class="grab"></div>
     ${art('candle')}
-    <h2 id="crisis-title">Ты не одна</h2>
+    <h2 id="crisis-title">${gx('Ты не {одна|один}')}</h2>
     <p class="lead muted">Это состояние пройдёт. Сначала — несколько медленных выдохов, длиннее вдоха.</p>
     <a class="btn primary wide" href="#/breathe/calm" data-close>Подышать вместе</a>
     <p class="eyebrow" style="margin:22px 0 8px">Быстро вернуться в тело</p>
     <div class="list">
       <a class="contact-link" href="#/practice/cold" data-close><span>Холодная вода и лёд</span><span>${icon('next')}</span></a>
       <a class="contact-link" href="#/practice/grounding" data-close><span>Заземление 5-4-3-2-1</span><span>${icon('next')}</span></a>
-      <a class="contact-link" href="#/practice/anchor" data-close><span>Якорь в одежде</span><span>${icon('next')}</span></a>
+      ${findPractice('anchor') ? `<a class="contact-link" href="#/practice/anchor" data-close><span>${esc(findPractice('anchor').title)}</span><span>${icon('next')}</span></a>` : ''}
     </div>
     <p class="eyebrow" style="margin:22px 0 8px">Позвонить</p>
     <div class="list">

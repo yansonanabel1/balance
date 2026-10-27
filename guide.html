@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Баланс — как начать</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Lora:ital,wght@0,400;0,500;1,400&family=Manrope:wght@500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #F6F0E4; --surface: #FFFDF8; --surface-2: #EDE5D6; --text: #1F1D1A; --muted: #6F685E;
+      --line: #E0D6C4; --accent: #5E54D9; --accent-ink: #fff; --accent-soft: #E7E3FA;
+      --p-yellow: #F8EBB8; --p-blue: #D6ECF3; --p-pink: #F8DCD6; --p-green: #DCEFC9;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #1B1A1F; --surface: #26252B; --surface-2: #312F37; --text: #F2EEE6; --muted: #A7A097; --line: #3A3841; --accent: #A79CFF; --accent-ink: #17161C; --accent-soft: #35304D; color-scheme: dark; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 500 16px/1.6 "Manrope", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    main { max-width: 640px; margin: 0 auto; padding: 28px 16px 60px; }
+    h1 { font-family: "Lora", Georgia, serif; font-weight: 400; font-size: 38px; line-height: 1.1; margin: 4px 0 12px; }
+    h1 em { color: var(--accent); }
+    h2 { font-family: "Lora", Georgia, serif; font-weight: 500; font-size: 23px; margin: 0 0 10px; }
+    .hand { font-family: "Caveat", cursive; font-size: 22px; color: var(--accent); display: inline-block; transform: rotate(-4deg); }
+    .lead { color: var(--muted); font-size: 17px; }
+    section { background: var(--surface); border-radius: 24px; padding: 20px; margin-top: 16px; box-shadow: 0 8px 24px -14px rgba(60, 45, 20, .25); }
+    section.pastel { color: #1F1D1A; }
+    section.pastel .muted { color: #574F45; }
+    .yellow { background: var(--p-yellow); } .blue { background: var(--p-blue); } .pink { background: var(--p-pink); } .green { background: var(--p-green); }
+    ol { margin: 0; padding-left: 22px; } li { margin: 8px 0; }
+    .muted { color: var(--muted); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+    .btn.ghost { background: transparent; color: inherit; box-shadow: inset 0 0 0 1.5px var(--line); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    code { background: var(--surface-2); padding: 2px 7px; border-radius: 6px; font-size: 14px; word-break: break-all; }
+    section.pastel code { background: rgba(255, 253, 248, .7); }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 8px; }
+    td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    td:first-child { white-space: nowrap; font-weight: 700; }
+    .step { font-weight: 700; }
+    .note { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+    .status { font-size: 14px; min-height: 20px; margin: 8px 0 0; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <span class="hand">для себя и для друзей</span>
+  <h1>«Баланс» — <em>как начать</em></h1>
+  <p class="lead">Дневник состояния в телефоне: сон, состояние и энергия за минуту утром, дневник, графики, дыхание и практики КПТ и ДБТ. Все записи хранятся <b>только в твоём телефоне</b> — никто, включая автора приложения, их не видит.</p>
+  <div class="row"><a class="btn" href="./">Открыть приложение</a></div>
+
+  <section class="pastel yellow">
+    <h2>1. Поставь на телефон</h2>
+    <ol>
+      <li><span class="step">Android:</span> открой ссылку в <b>Chrome</b> → меню <b>⋮</b> → «Добавить на главный экран» или «Установить приложение».</li>
+      <li><span class="step">iPhone:</span> открой ссылку в <b>Safari</b> → кнопка «Поделиться» → «На экран „Домой“».</li>
+    </ol>
+    <p class="note muted">Открывай приложение с иконки на экране. Если открыть ссылку в другом браузере или прямо в Telegram, там будет пусто — у каждого места свои записи.</p>
+  </section>
+
+  <section>
+    <h2>2. Первые шаги</h2>
+    <ol>
+      <li><b>Настройки</b> → впиши имя и выбери, как к тебе обращаться: в женском или в мужском роде.</li>
+      <li>Там же — <b>«Кому позвонить, когда плохо»</b>: добавь врача и близких. Эти номера появятся по кнопке «Мне сейчас очень плохо».</li>
+      <li>На главной — <b>«Начать»</b>: утренняя отметка занимает пару минут.</li>
+      <li>Если психолог дал свои упражнения — <b>Практики → «Добавить практику от психолога»</b>.</li>
+    </ol>
+  </section>
+
+  <section class="pastel blue" id="bot">
+    <h2>3. Напоминания в Telegram <span class="muted" style="font-size:16px">— по желанию</span></h2>
+    <p class="muted" style="margin-top:0">Если утром нет отметки, твой бот напишет в Telegram, а отметки сохранятся в твою Google-таблицу. Займёт минут 15, один раз.</p>
+    <ol>
+      <li><b>Бот.</b> Напиши <a href="https://t.me/BotFather">@BotFather</a> → <code>/newbot</code> → придумай имя → он пришлёт <b>токен</b>. Можно взять и уже существующего бота: скрипт только отправляет сообщения.</li>
+      <li><b>Твой ID.</b> Напиши <a href="https://t.me/userinfobot">@userinfobot</a> — он пришлёт число. Потом открой своего бота и нажми <b>Start</b>, иначе он не сможет тебе написать.</li>
+      <li><b>Таблица.</b> Открой <a href="https://sheets.new">sheets.new</a> (новая Google-таблица) → <b>Расширения → Apps Script</b>.</li>
+      <li><b>Скрипт.</b> Сотри всё в файле <code>Код.gs</code> и вставь скрипт:
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="copy">Скопировать скрипт</button>
+          <a class="btn ghost" href="share/balance-bot.txt" target="_blank">Открыть текст</a>
+        </div>
+        <p class="status" id="copy-status"></p>
+      </li>
+      <li><b>Настройки проекта</b> (шестерёнка слева) → часовой пояс, например <code>(GMT+03:00) Москва</code>. Ниже — <b>Свойства скрипта → Добавить</b>:
+        <table>
+          <tr><td>BOT_TOKEN</td><td>токен от @BotFather</td></tr>
+          <tr><td>CHAT_ID</td><td>число от @userinfobot</td></tr>
+          <tr><td>SECRET</td><td>придумай длинный пароль, например <code>balance-k7f3q9m2x</code></td></tr>
+        </table>
+      </li>
+      <li><b>Запусти один раз:</b> вверху выбери функцию <code>setup</code> → <b>Выполнить</b> → разреши доступ. Google предупредит, что приложение не проверено: это твой собственный скрипт, нажми <b>«Дополнительные настройки» → «Перейти»</b>. Бот пришлёт «подключён ✅».</li>
+      <li><b>Опубликуй:</b> <b>Начать развёртывание → Новое развёртывание → Веб-приложение</b>. Выполнять как: <b>Я</b>, доступ: <b>Все</b>. Скопируй адрес, который заканчивается на <code>/exec</code>.</li>
+      <li><b>В приложении:</b> Настройки → «Свой бот в Telegram» → вставь адрес и SECRET → выбери время → <b>«Сохранить и проверить»</b>.</li>
+    </ol>
+    <p class="note muted">Тексты дневника уходят в таблицу, только если включить галочку в настройках. Цифры, лекарства и чувства — всегда.</p>
+  </section>
+
+  <section>
+    <h2>4. Не потерять записи</h2>
+    <p style="margin:0">Записи живут в телефоне. Раз в пару недель: <b>Настройки → «Скачать копию»</b> и сохрани файл, например, в Telegram «Избранное». Если подключён бот — копия ещё и в таблице.</p>
+  </section>
+
+  <section class="pastel green">
+    <h2>5. Есть идея или что-то не работает?</h2>
+    <p style="margin:0"><b>Настройки → «Отзывы и идеи»</b>. Сообщение придёт автору приложения, твои записи при этом никуда не отправляются.</p>
+  </section>
+
+  <section class="pastel pink">
+    <h2>Важно</h2>
+    <p style="margin:0">Приложение помогает замечать своё состояние, но не заменяет врача и психолога. Если есть риск, что ты причинишь себе вред, — звони <b>112</b>.</p>
+  </section>
+</main>
+<script>
+  // Копируем текст скрипта в буфер обмена, чтобы вставить его в Apps Script
+  document.getElementById('copy').onclick = async () => {
+    const status = document.getElementById('copy-status');
+    try {
+      const text = await fetch('share/balance-bot.txt', { cache: 'no-cache' }).then((r) => {
+        if (!r.ok) throw new Error(r.status);
+        return r.text();
+      });
+      await navigator.clipboard.writeText(text);
+      status.textContent = 'Скопировано ✓ Теперь вставь в Apps Script.';
+    } catch (e) {
+      status.textContent = 'Не получилось скопировать — нажми «Открыть текст», выдели всё и скопируй.';
+    }
+  };
+</script>
+</body>
+</html>

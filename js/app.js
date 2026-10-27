@@ -9,6 +9,7 @@ import * as settings from './views/settings.js';
 import * as practices from './views/practices.js';
 import * as report from './views/report.js';
 import * as importNotes from './views/import.js';
+import * as feedback from './views/feedback.js';
 import { startSync } from './sync.js';
 
 const view = document.getElementById('view');
@@ -28,6 +29,7 @@ const ROUTES = {
   emotions: { tab: 'practices', render: practices.renderEmotions },
   report: { tab: null, render: report.render },
   import: { tab: 'settings', render: importNotes.render },
+  feedback: { tab: 'settings', render: feedback.render },
   settings: { tab: 'settings', render: settings.render },
 };
 
@@ -64,7 +66,7 @@ route();
 function syncFromStorage() {
   if (!store.reload()) return;
   const name = location.hash.replace(/^#\/?/, '').split('/')[0];
-  if (!['checkin', 'practice-edit', 'emotions', 'import'].includes(name)) route();
+  if (!['checkin', 'practice-edit', 'emotions', 'import', 'feedback'].includes(name)) route();
 }
 window.addEventListener('storage', (ev) => { if (ev.key === 'balance.v1') syncFromStorage(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncFromStorage(); });
