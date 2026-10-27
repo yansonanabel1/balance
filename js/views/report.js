@@ -82,7 +82,8 @@ function build(from, to, withTexts) {
 
   const meds = { taken: 0, missed: 0, none: 0 };
   for (const e of entries) if (e.meds) meds[e.meds]++;
-  const cycles = entries.filter((e) => e.periodStart).map((e) => fmt(e.date, { day: 'numeric', month: 'long' }));
+  const cycleOn = store.cycleOn();
+  const cycles = entries.filter((e) => cycleOn && e.periodStart).map((e) => fmt(e.date, { day: 'numeric', month: 'long' }));
 
   const emoCount = {};
   for (const e of entries) for (const m of e.emotions || []) emoCount[m] = (emoCount[m] || 0) + 1;
@@ -162,14 +163,14 @@ function build(from, to, withTexts) {
         <thead><tr><th>Дата</th><th class="num">Сон</th><th class="num">Сост.</th><th class="num">Энерг.</th><th class="num">Трев.</th><th class="num">Раздр.</th><th>Лек.</th><th>Заметки</th></tr></thead>
         <tbody>
           ${filled.map((e) => `<tr>
-            <td>${fmt(e.date, { day: '2-digit', month: '2-digit' })}${e.periodStart ? ' ●' : ''}</td>
+            <td>${fmt(e.date, { day: '2-digit', month: '2-digit' })}${cycleOn && e.periodStart ? ' ●' : ''}</td>
             ${['sleep', 'state', 'energy', 'anxiety', 'irritability'].map((k) => cell(e, k)).join('')}
             <td>${e.meds ? MEDS_SHORT[e.meds] : '—'}</td>
             <td class="note-cell">${esc((e.emotions || []).join(', '))}${withTexts && e.text ? `${e.emotions?.length ? '<br>' : ''}${esc(e.text)}` : ''}</td>
           </tr>`).join('')}
         </tbody>
       </table></div>
-      <p class="sub">● — первый день цикла.</p>
+      ${cycleOn ? '<p class="sub">● — первый день цикла.</p>' : ''}
     </section>
 
     <p class="footer">Данные самонаблюдения пациента из приложения «Баланс». Не являются медицинским заключением.</p>

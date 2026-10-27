@@ -7,6 +7,8 @@ const DEFAULT_SETTINGS = {
   name: '',
   // род обращения в текстах: 'f' — женский, 'm' — мужской
   gender: 'f',
+  // отметки менструального цикла: у новых пользователей выключены
+  trackCycle: false,
   contacts: [{ name: 'Экстренные службы', phone: '112' }],
   lastBackup: null,
   installHintHidden: false,
@@ -44,7 +46,13 @@ function normalize(s) {
     custom: Array.isArray(s?.custom) ? s.custom : [],
     emotionMap: obj('emotionMap'),
     pending: Array.isArray(s?.pending) ? s.pending : [],
-    settings: { ...DEFAULT_SETTINGS, ...(s && s.settings), tg: { ...DEFAULT_SETTINGS.tg, ...(s?.settings?.tg) } },
+    settings: {
+      ...DEFAULT_SETTINGS,
+      // у тех, кто пользовался приложением до появления настройки, цикл уже был — оставляем включённым
+      trackCycle: s?.settings && s.settings.trackCycle === undefined ? Object.keys(entries).length > 0 : DEFAULT_SETTINGS.trackCycle,
+      ...(s && s.settings),
+      tg: { ...DEFAULT_SETTINGS.tg, ...(s?.settings?.tg) },
+    },
   };
 }
 
@@ -159,6 +167,10 @@ export function streak() {
     k = addDays(k, -1);
   }
   return n;
+}
+
+export function cycleOn() {
+  return !!state.settings.trackCycle;
 }
 
 // День цикла на дату — от последней отметки «начались месячные»

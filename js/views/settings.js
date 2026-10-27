@@ -29,6 +29,10 @@ export function render(root) {
         <button data-gender="f" aria-pressed="${s.gender !== 'm'}">в женском роде</button>
         <button data-gender="m" aria-pressed="${s.gender === 'm'}">в мужском роде</button>
       </div>
+      <label class="switch-row" style="box-shadow:none;background:var(--surface-2);margin-top:14px">
+        <span><b>Отслеживать менструальный цикл</b><span>Отметка «начались месячные» в утренней отметке, день цикла в дневнике и отчёте</span></span>
+        <span class="switch"><input type="checkbox" data-f="cycle" ${s.trackCycle ? 'checked' : ''}><i></i></span>
+      </label>
     </section>
 
     <section class="section card">
@@ -101,6 +105,12 @@ export function render(root) {
   nameInput.onchange = () => {
     store.updateSettings({ name: nameInput.value.trim() });
     toast('Имя сохранено');
+  };
+
+  const cycleSwitch = root.querySelector('[data-f="cycle"]');
+  cycleSwitch.onchange = () => {
+    store.updateSettings({ trackCycle: cycleSwitch.checked });
+    toast(cycleSwitch.checked ? 'Цикл включён' : 'Цикл скрыт — прошлые отметки сохранены');
   };
 
   for (const b of root.querySelectorAll('[data-gender]')) {

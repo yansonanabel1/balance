@@ -125,13 +125,13 @@ export function render(root, { date, step }) {
       const cd = store.cycleDay(store.addDays(day, -1));
       const cycleHint = entry.periodStart ? 'Отмечен первый день цикла' : cd ? `Сегодня ${cd + 1}-й день цикла` : 'Отметь — и приложение будет считать день цикла';
       return `
-        <h1 class="q">Лекарства и цикл</h1>
+        <h1 class="q">${store.cycleOn() ? 'Лекарства и цикл' : 'Лекарства'}</h1>
         <p class="hint">Как сегодня с приёмом?</p>
         <div class="choices">${MED_OPTIONS.map(([v, label]) => choice(v, gx(label), entry.meds === v)).join('')}</div>
-        <label class="switch-row">
+        ${store.cycleOn() ? `<label class="switch-row">
           <span><b>Сегодня начались месячные</b><span class="cycle-hint">${cycleHint}</span></span>
           <span class="switch"><input type="checkbox" ${entry.periodStart ? 'checked' : ''}><i></i></span>
-        </label>
+        </label>` : ''}
         <div class="checkin-foot"><button class="btn primary wide" data-act="next">Дальше</button></div>`;
     }
 
@@ -203,7 +203,7 @@ export function render(root, { date, step }) {
         };
       }
       const sw = root.querySelector('.switch input');
-      sw.onchange = () => {
+      if (sw) sw.onchange = () => {
         save({ periodStart: sw.checked });
         const cd = store.cycleDay(store.addDays(day, -1));
         root.querySelector('.cycle-hint').textContent = sw.checked ? 'Отмечен первый день цикла' : cd ? `Сегодня ${cd + 1}-й день цикла` : 'Отметь — и приложение будет считать день цикла';

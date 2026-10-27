@@ -196,32 +196,33 @@ function xLabels(entries, xc) {
 }
 
 export function marksCard(entries) {
+  const cycle = store.cycleOn();
   const n = entries.length;
-  const h = 56;
+  const h = cycle ? 56 : 32;
   const iw = W - PL - PR;
   const xc = (i) => PL + ((i + 0.5) * iw) / n;
   const r = Math.min(5, (iw / n) * 0.35);
   const parts = [
     `<text x="${PL - 4}" y="18" text-anchor="end">Лек</text>`,
-    `<text x="${PL - 4}" y="40" text-anchor="end">Цикл</text>`,
+    cycle ? `<text x="${PL - 4}" y="40" text-anchor="end">Цикл</text>` : '',
   ];
   entries.forEach((e, i) => {
     if (e.meds === 'taken') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-high)"><title>Приём</title></circle>`);
     if (e.meds === 'missed') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-low)"><title>Пропуск</title></circle>`);
-    if (e.periodStart) parts.push(`<circle cx="${xc(i)}" cy="37" r="${r}" style="fill:var(--c-anxiety)"><title>Начало цикла</title></circle>`);
+    if (cycle && e.periodStart) parts.push(`<circle cx="${xc(i)}" cy="37" r="${r}" style="fill:var(--c-anxiety)"><title>Начало цикла</title></circle>`);
   });
   return `
     <section class="card chart-card">
-      <h2 class="h2">Лекарства и цикл</h2>
-      <div class="chart"><svg viewBox="0 0 ${W} ${h}" role="img" aria-label="Отметки лекарств и цикла">
+      <h2 class="h2">${cycle ? 'Лекарства и цикл' : 'Лекарства'}</h2>
+      <div class="chart"><svg viewBox="0 0 ${W} ${h}" role="img" aria-label="${cycle ? 'Отметки лекарств и цикла' : 'Отметки лекарств'}">
         <line class="grid" x1="${PL}" x2="${W - PR}" y1="15" y2="15"/>
-        <line class="grid" x1="${PL}" x2="${W - PR}" y1="37" y2="37"/>
+        ${cycle ? `<line class="grid" x1="${PL}" x2="${W - PR}" y1="37" y2="37"/>` : ''}
         ${parts.join('')}
       </svg></div>
       <div class="marks-legend">
         <span><i class="dot-sw" style="width:10px;height:10px;border-radius:50%;background:var(--tone-high);display:inline-block"></i>Приём</span>
         <span><i style="width:10px;height:10px;border-radius:50%;background:var(--tone-low);display:inline-block"></i>Пропуск</span>
-        <span><i style="width:10px;height:10px;border-radius:50%;background:var(--c-anxiety);display:inline-block"></i>Начало цикла</span>
+        ${cycle ? '<span><i style="width:10px;height:10px;border-radius:50%;background:var(--c-anxiety);display:inline-block"></i>Начало цикла</span>' : ''}
       </div>
     </section>`;
 }

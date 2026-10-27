@@ -92,7 +92,7 @@ export function renderList(root) {
 function card(e) {
   const extra = [];
   if (e.meds === 'missed') extra.push('<span class="chip">Пропуск лекарств</span>');
-  if (e.periodStart) extra.push('<span class="chip">1-й день цикла</span>');
+  if (e.periodStart && store.cycleOn()) extra.push('<span class="chip">1-й день цикла</span>');
   return `
     <a class="card entry-card" href="#/entry/${e.date}">
       <span class="date">${esc(fmtShort(e.date))}</span>
@@ -108,7 +108,7 @@ export function renderEntry(root, { date }) {
     return;
   }
 
-  const cd = store.cycleDay(date);
+  const cd = store.cycleOn() ? store.cycleDay(date) : null;
   const metrics = ['sleep', 'state', 'energy', 'anxiety', 'irritability']
     .filter((k) => typeof e[k] === 'number')
     .map((k) => `
