@@ -44,7 +44,7 @@ export function renderList(root) {
     const cells = [];
     const monthData = [];
     const legend = calendarMetric === 'sleep'
-      ? [['var(--tone-low)', '< 7 ч'], ['var(--tone-high)', '7–9 ч'], ['var(--p-blue)', '> 9 ч']]
+      ? [['var(--tone-low)', '&lt; 7 ч'], ['var(--tone-high)', '7–9 ч'], ['var(--p-blue)', '&gt; 9 ч']]
       : calendarMetric === 'energy'
         ? [['var(--tone-low)', '1–3'], ['var(--tone-mid)', '4–6'], ['var(--tone-high)', '7–10']]
         : [['var(--tone-low)', '1–3'], ['var(--tone-mid)', '4–6'], ['var(--tone-high)', '7–10']];
@@ -87,7 +87,7 @@ export function renderList(root) {
         ${legend.map(([color,label])=>`<span><i style="background:${color}"></i>${label}</span>`).join('')}
       </div>
       <div class="cal-legend cal-status-legend"><span><i class="cal-status-meds"></i>Пропуск лекарства</span><span><i class="cal-status-event"></i>Событие</span></div>
-      <p class="cal-month-summary">Отмечено: ${monthData.length} дн. · Сон < 7 ч: ${sleepShort} · Сон > 9 ч: ${sleepLong} · Дни с событиями: ${contextCount}</p>`;
+      <p class="cal-month-summary">Отмечено: ${monthData.length} дн. · Сон &lt; 7 ч: ${sleepShort} · Сон &gt; 9 ч: ${sleepLong} · Дни с событиями: ${contextCount}</p>`;
     for (const btn of cal.querySelectorAll('[data-cal-metric]')) {
       btn.onclick = () => { calendarMetric = btn.dataset.calMetric; drawCal(); };
     }
