@@ -25,7 +25,9 @@ export function buildPsychReport(from, to, withTexts) {
     const found=[...counts].sort((a,b)=>b[1]-a[1]).slice(0,5);
     return found.length ? found.map(([name,num])=>esc(name)+' — '+num+' '+plural(num,['день','дня','дней'])).join('; ') : 'Нет отметок';
   };
-  const chart=(title,keys,opt={})=>'<section><h2>'+title+'</h2><div class="chart">'+chartSvg(entries,keys,'line',opt)+'</div></section>';
+  const chart=(title,keys,opt={})=>'<section><h2>'+title+'</h2><div class="legend">'
+    +keys.map(k=>'<span><i style="background:'+METRICS[k].color+'"></i>'+METRICS[k].label+'</span>').join('')
+    +'</div><div class="chart">'+chartSvg(entries,keys,'line',opt)+'</div></section>';
   const headings=['<th>Дата</th>','<th class="num">Сон, ч</th>','<th class="num">Сост.</th>','<th class="num">Энерг.</th>','<th class="num">Трев.</th>','<th class="num">Раздр.</th>']
     .concat(meds?['<th>Лек.</th>']:[],cycle?['<th>Цикл</th>']:[],['<th>Эмоции и события</th>']);
   const val=(e,k)=>'<td class="num">'+(typeof e[k]==='number' ? format(k,e[k]) : '—')+'</td>';
