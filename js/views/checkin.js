@@ -171,7 +171,7 @@ export function render(root, { date, step }) {
       const range = root.querySelector('input[type="range"]');
       const field = root.querySelector('.sleep-value input');
       const hm = root.querySelector('.sleep-hm');
-      let value = Number(range.value);
+      let value = typeof entry.sleep === 'number' ? entry.sleep : (store.lastValue('sleep', day) ?? 7);
       // fromField — не переписываем поле, пока человек в нём печатает
       const set = (v, fromField = false) => {
         value = Math.round(Math.min(16, Math.max(0, v)) * 60) / 60;
