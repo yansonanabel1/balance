@@ -44,6 +44,7 @@ export function render(root) {
     holder.innerHTML = [
       card('Состояние и энергия', entries, ['state', 'energy'], 'line'),
       card('Сон', entries, ['sleep'], 'line'),
+      ...(entries.some((e) => e.sleepStart && e.sleepEnd) ? ['<section class="card chart-card"><h2 class="h2">Режим сна по ночам</h2><p class="muted">Время засыпания и пробуждения, если они указаны</p><div class="chart sleep-rhythm">' + sleepRhythmSvg(entries) + '</div></section>'] : []),
       card('Тревога и раздражительность', entries, ['anxiety', 'irritability'], 'line'),
       marksCard(entries),
     ].join('');
@@ -215,6 +216,42 @@ function xLabels(entries, xc) {
     out.push(`<text x="${xc(i)}" y="${H - 4}" text-anchor="middle">${label}</text>`);
   });
   return out.join('');
+}
+
+// Шкала с 12:00 предыдущего дня до 12:00 следующего.
+// Старые записи с длительностью, но без времени сна, показываются как отсутствие данных режима.
+export function sleepRhythmSvg(entries) {
+  const days = entries.slice(-31);
+  const plotLeft=46, plotWidth=266, row=13, top=30;
+  const height=top+days.length*row+12;
+  const tickValues=[12,18,24,30,36];
+  const labels=['12:00','18:00','00:00','06:00','12:00'];
+  const x=(v)=>plotLeft+(v-12)/24*plotWidth;
+  const parts=[];
+  tickValues.forEach((v,i)=>{
+    parts.push('<line x1="'+x(v)+'" y1="21" x2="'+x(v)+'" y2="'+(height-7)+'" stroke="currentColor" stroke-opacity="0.17" stroke-width="0.6"/>');
+    parts.push('<text x="'+x(v)+'" y="12" text-anchor="middle">'+labels[i]+'</text>');
+  });
+  days.forEach((e,i)=>{
+    const center=top+i*row;
+    parts.push('<text x="35" y="'+(center+3)+'" text-anchor="end">'+e.date.slice(5).replace('-','.')+'</text>');
+    if (!e.sleepStart || !e.sleepEnd || typeof e.sleep !== 'number') {
+      parts.push('<text x="'+x(24)+'" y="'+(center+3)+'" opacity="0.35" text-anchor="middle">—</text>');
+      return;
+    }
+    const partsTime=e.sleepStart.split(':').map(Number);
+    const clock=partsTime[0]+partsTime[1]/60;
+    const start=clock<12?clock+24:clock;
+    const end=start+e.sleep;
+    if (end>36 || start<12 || start>36) {
+      parts.push('<text x="'+x(24)+'" y="'+(center+3)+'" opacity="0.65" text-anchor="middle">вне шкалы</text>');
+      return;
+    }
+    const color=e.sleep<7 || e.sleep>9?'#B86B60':'var(--c-sleep)';
+    const width=Math.max(1,x(end)-x(start));
+    parts.push('<rect x="'+x(start)+'" y="'+(center-4.5)+'" width="'+width+'" height="9" rx="3" fill="'+color+'"><title>'+e.date+': '+e.sleepStart+' – '+e.sleepEnd+', '+fmtSleep(e.sleep)+' ч</title></rect>');
+  });
+  return '<svg viewBox="0 0 320 '+height+'" role="img" aria-label="Режим сна по дням: время засыпания и пробуждения">'+parts.join('')+'</svg>';
 }
 
 export function marksCard(entries) {

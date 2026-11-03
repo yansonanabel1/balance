@@ -1,5 +1,6 @@
 // Хранилище: всё лежит в localStorage этого устройства.
-// Запись = один день: { date, sleep, state, energy, anxiety, irritability, meds, periodStart, emotions, text, prompt }
+// Запись = один день: { date, sleep (часы), sleepStart (HH:mm), sleepEnd (HH:mm), state, energy, anxiety, irritability, meds, periodStart, emotions, triggers, text, prompt }
+// Старые записи только с sleep поддерживаются без миграции; время сна не угадываем.
 
 const KEY = 'balance.v1';
 const DEFAULT_SETTINGS = {

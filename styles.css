@@ -665,6 +665,43 @@ textarea:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
+
+/* ---------- Сон: время засыпания и пробуждения ---------- */
+.sleep-times { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 18px; }
+.sleep-time-label { display: flex; flex-direction: column; gap: 10px; min-width: 0; font-weight: 700; color: var(--muted); font-size: 14px; }
+.sleep-time-label .input { width: 100%; min-width: 0; font-size: 24px; font-weight: 650; text-align: center; color: var(--text); padding: 6px; }
+.sleep-result { display: flex; align-items: center; flex-direction: column; gap: 7px; margin: 8px 0 20px; padding: 20px 12px; border-radius: 20px; background: var(--surface-2); color: var(--text); }
+.sleep-result span { font-size: 13px; color: var(--muted); }
+.sleep-result b { font-family: var(--font-display); font-size: 32px; font-weight: 500; }
+.sleep-error { min-height: 20px; margin: 6px 0; color: var(--danger); font-size: 13px; }
+
+/* ---------- Календарь наблюдений ---------- */
+.cal-switch { display: flex; gap: 4px; margin: 14px 0 16px; padding: 4px; border-radius: 14px; background: var(--surface-2); }
+.cal-switch button { flex: 1; padding: 9px 3px; border: 0; background: transparent; border-radius: 10px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.cal-switch button[aria-pressed="true"] { color: var(--text); background: var(--surface); box-shadow: var(--shadow); }
+.cal-day { position: relative; }
+.cal-day .cal-statuses { position: absolute; display: flex; justify-content: center; gap: 3px; width: 100%; bottom: 2px; left: 0; }
+.cal-day .cal-status { width: 6px; height: 6px; display: inline-block; border-radius: 50%; }
+.cal-status-meds { background: #BA463B !important; }
+.cal-status-event { background: #6153AD !important; }
+.cal-legend { flex-wrap: wrap; gap: 7px 13px; }
+.cal-status-legend { margin-top: 7px; font-size: 11px; }
+.cal-status-legend .cal-status-meds, .cal-status-legend .cal-status-event { width: 7px; height: 7px; }
+.cal-month-summary { text-align: center; font-size: 12px; line-height: 1.5; margin: 13px 0 0; color: var(--muted); }
+
+/* ---------- Клинические наблюдения ---------- */
+.report-patterns { margin: 18px 0 24px; }
+.pattern-list { display: grid; gap: 10px; margin: 10px 0; }
+.pattern-item { background: #F4F0EB; border: 1px solid #D5C8BB; border-left: 4px solid #8C5878; border-radius: 10px; padding: 12px 14px; color: #302B28; }
+.pattern-item b { display: block; font-size: 13px; }
+.pattern-item p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; }
+.report .sleep-rhythm { width: 100%; }
+.sleep-rhythm text { font-size: 8px; }
+@media print {
+  .pattern-item { break-inside: avoid; page-break-inside: avoid; }
+  .report .sleep-rhythm svg { max-height: none; max-width: 420px; margin: 0 auto; }
+  .report .sleep-rhythm { break-inside: avoid; }
+}
 /* ---------- Настройки ---------- */
 select.input { appearance: auto; }
 .tg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

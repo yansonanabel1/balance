@@ -4,6 +4,7 @@ import { emotionChips, esc, fmtDate, fmtNum, fmtSleep, fmtShort, icon, MEDS, MET
 
 // показываемый месяц живёт между перерисовками
 let month = null;
+let calendarMetric = 'state';
 
 export function renderList(root) {
   const entries = store.allEntries();
@@ -41,15 +42,33 @@ export function renderList(root) {
     const offset = (first.getDay() + 6) % 7; // понедельник — первый
     const title = first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(' г.', '');
     const cells = [];
+    const monthData = [];
+    const legend = calendarMetric === 'sleep'
+      ? [['var(--tone-low)', '&lt; 7 ч'], ['var(--tone-high)', '7–9 ч'], ['var(--p-blue)', '&gt; 9 ч']]
+      : calendarMetric === 'energy'
+        ? [['var(--tone-low)', '1–3'], ['var(--tone-mid)', '4–6'], ['var(--tone-high)', '7–10']]
+        : [['var(--tone-low)', '1–3'], ['var(--tone-mid)', '4–6'], ['var(--tone-high)', '7–10']];
     for (let k = 0; k < offset; k++) cells.push('<span></span>');
     for (let d = 1; d <= daysIn; d++) {
       const key = `${month}-${String(d).padStart(2, '0')}`;
       const e = store.getEntry(key);
-      const c = stateColor(e?.state);
+      if (e && key <= today) monthData.push(e);
+      let color = null;
+      if (calendarMetric === 'sleep' && typeof e?.sleep === 'number') {
+        color = e.sleep < 7 ? 'var(--tone-low)' : e.sleep > 9 ? 'var(--p-blue)' : 'var(--tone-high)';
+      } else if (calendarMetric === 'energy') color = stateColor(e?.energy);
+      else color = stateColor(e?.state);
       const cls = ['cal-day', e ? 'has' : '', key === today ? 'today' : '', key > today ? 'future' : ''].join(' ');
-      const bg = c ? `background:${c}` : e ? 'background:var(--surface-2);color:var(--text)' : '';
-      cells.push(`<a class="${cls}" style="${bg}" href="${e ? `#/entry/${key}` : `#/checkin/${key}`}" aria-label="${esc(fmtDate(key))}${e ? '' : ', нет записи — заполнить'}">${d}</a>`);
+      const bg = color ? `background:${color}` : e ? 'background:var(--surface-2);color:var(--text)' : '';
+      const sleeping = typeof e?.sleep === 'number' ? ', сон ' + fmtSleep(e.sleep) + ' ч' : '';
+      const title = (typeof e?.state === 'number' ? ', состояние ' + e.state : '') + (typeof e?.energy === 'number' ? ', энергия ' + e.energy : '') + sleeping;
+      const markers = (e?.meds === 'missed' ? '<i class="cal-status cal-status-meds" title="Пропуск лекарств"></i>' : '')
+        + (e?.triggers?.length ? '<i class="cal-status cal-status-event" title="Отмечено событие"></i>' : '');
+      cells.push(`<a class="${cls}" style="${bg}" href="${e ? `#/entry/${key}` : `#/checkin/${key}`}" aria-label="${esc(fmtDate(key) + (e ? title : ', нет записи'))}"><span>${d}</span>${markers ? `<span class="cal-statuses">${markers}</span>` : ''}</a>`);
     }
+    const sleepShort = monthData.filter(e=>typeof e.sleep === 'number' && e.sleep < 7).length;
+    const sleepLong = monthData.filter(e=>typeof e.sleep === 'number' && e.sleep > 9).length;
+    const contextCount = monthData.filter(e=>e.triggers?.length).length;
     const nextMonth = month < today.slice(0, 7);
     cal.innerHTML = `
       <div class="cal-head">
@@ -57,15 +76,21 @@ export function renderList(root) {
         <h2 class="h2">${title.charAt(0).toUpperCase() + title.slice(1)}</h2>
         <button class="icon-btn" data-m="1" aria-label="Следующий месяц" ${nextMonth ? '' : 'disabled style="visibility:hidden"'}>${icon('next')}</button>
       </div>
+      <div class="cal-switch" role="group" aria-label="Показатель календаря">
+        ${[['state','Состояние'],['sleep','Сон'],['energy','Энергия']].map(([key,label])=>`<button type="button" data-cal-metric="${key}" aria-pressed="${calendarMetric === key}">${label}</button>`).join('')}
+      </div>
       <div class="cal-grid">
         ${['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'].map((w) => `<span class="wd">${w}</span>`).join('')}
         ${cells.join('')}
       </div>
       <div class="cal-legend">
-        <span><i style="background:var(--tone-low)"></i>1–3</span>
-        <span><i style="background:var(--tone-mid)"></i>4–6</span>
-        <span><i style="background:var(--tone-high)"></i>7–10</span>
-      </div>`;
+        ${legend.map(([color,label])=>`<span><i style="background:${color}"></i>${label}</span>`).join('')}
+      </div>
+      <div class="cal-legend cal-status-legend"><span><i class="cal-status-meds"></i>Пропуск лекарства</span><span><i class="cal-status-event"></i>Событие</span></div>
+      <p class="cal-month-summary">Отмечено: ${monthData.length} дн. · Сон &lt; 7 ч: ${sleepShort} · Сон &gt; 9 ч: ${sleepLong} · Дни с событиями: ${contextCount}</p>`;
+    for (const btn of cal.querySelectorAll('[data-cal-metric]')) {
+      btn.onclick = () => { calendarMetric = btn.dataset.calMetric; drawCal(); };
+    }
     for (const b of cal.querySelectorAll('[data-m]')) {
       b.onclick = () => {
         const d = new Date(y, m - 1 + Number(b.dataset.m), 1);
@@ -79,7 +104,7 @@ export function renderList(root) {
   const drawList = () => {
     const q = search.value.trim().toLowerCase();
     const shown = q
-      ? entries.filter((e) => `${e.text || ''} ${(e.emotions || []).join(' ')}`.toLowerCase().includes(q))
+      ? entries.filter((e) => `${e.text || ''} ${(e.emotions || []).join(' ')} ${(e.triggers || []).join(' ')}`.toLowerCase().includes(q))
       : entries.filter((e) => e.date.startsWith(month));
     list.innerHTML = shown.length ? shown.map(card).join('') : `<p class="empty-state">${q ? 'Ничего не нашлось' : 'В этом месяце записей нет'}</p>`;
   };
@@ -93,6 +118,7 @@ function card(e) {
   const extra = [];
   if (e.meds === 'missed') extra.push('<span class="chip">Пропуск лекарств</span>');
   if (e.periodStart && store.cycleOn()) extra.push('<span class="chip">1-й день цикла</span>');
+  for (const event of e.triggers || []) extra.push('<span class="chip">' + esc(event) + '</span>');
   return `
     <a class="card entry-card" href="#/entry/${e.date}">
       <span class="date">${esc(fmtShort(e.date))}</span>
@@ -119,6 +145,8 @@ export function renderEntry(root, { date }) {
 
   const facts = [];
   if (e.meds) facts.push(MEDS[e.meds]);
+  if (e.sleepStart && e.sleepEnd) facts.push('Сон: ' + e.sleepStart + ' – ' + e.sleepEnd);
+  for (const event of e.triggers || []) facts.push(event);
   if (cd) facts.push(`${cd}-й день цикла`);
 
   root.innerHTML = `

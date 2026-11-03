@@ -106,9 +106,9 @@ function plan(today, e) {
       href: `#/checkin/${today}`,
     },
     {
-      done: !!e?.text,
+      done: !!e?.text || !!e?.emotions?.length || !!e?.triggers?.length,
       title: 'Что меня беспокоит?',
-      sub: e?.emotions?.length ? e.emotions.slice(0, 3).join(', ') : 'Пара строк в дневник',
+      sub: e?.emotions?.length ? e.emotions.slice(0, 3).join(', ') : e?.triggers?.length ? e.triggers.slice(0, 3).join(', ') : 'Пара строк в дневник',
       href: `#/checkin/${today}/feelings`,
     },
     {
