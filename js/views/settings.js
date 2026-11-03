@@ -29,9 +29,23 @@ export function render(root) {
         <button data-gender="f" aria-pressed="${s.gender !== 'm'}">в женском роде</button>
         <button data-gender="m" aria-pressed="${s.gender === 'm'}">в мужском роде</button>
       </div>
+
+    </section>
+
+    <section class="section card" id="tracking-options">
+      <h2 class="h2">Какие функции тебе нужны?</h2>
+      <p class="note">Дополнительные разделы необязательны. Включи нужные — они появятся в ежедневных отметках, дневнике и отчёте. Отключение не удаляет прошлые записи.</p>
       <label class="switch-row" style="box-shadow:none;background:var(--surface-2);margin-top:14px">
-        <span><b>Отслеживать менструальный цикл</b><span>Отметка «начались месячные» в утренней отметке, день цикла в дневнике и отчёте</span></span>
+        <span><b>Приём лекарств</b><span>Отметки «принято / пропущено / не требуется»</span></span>
+        <span class="switch"><input type="checkbox" data-f="meds" ${s.trackMeds ? 'checked' : ''}><i></i></span>
+      </label>
+      <label class="switch-row" style="box-shadow:none;background:var(--surface-2);margin-top:8px">
+        <span><b>Менструальный цикл</b><span>Отдельный шаг в ежедневной отметке, первый день цикла в дневнике и календаре</span></span>
         <span class="switch"><input type="checkbox" data-f="cycle" ${s.trackCycle ? 'checked' : ''}><i></i></span>
+      </label>
+      <label class="switch-row" style="box-shadow:none;background:var(--surface-2);margin-top:8px">
+        <span><b>Расширенный отчёт для врача</b><span>Дополнительные наблюдения, сочетания и пороги показателей. По умолчанию доступен простой отчёт для психолога.</span></span>
+        <span class="switch"><input type="checkbox" data-f="advanced" ${s.advancedReport ? 'checked' : ''}><i></i></span>
       </label>
     </section>
 
@@ -95,8 +109,8 @@ export function render(root) {
     </section>
 
     <section class="section card">
-      <h2 class="h2">Отчёт для врача</h2>
-      <p class="note">Графики, сводка и таблица по дням за выбранный период — в PDF.</p>
+      <h2 class="h2">${store.advancedReportOn() ? 'Расширенный отчёт для врача' : 'Отчёт для психолога'}</h2>
+      <p class="note">Состояние, сон, эмоции и события за выбранный период — в PDF. Формат можно изменить в анкете выше.</p>
       <a class="btn sm primary" style="margin-top:12px" href="#/report">${icon('print')} Сформировать отчёт</a>
     </section>
   `;
@@ -105,6 +119,18 @@ export function render(root) {
   nameInput.onchange = () => {
     store.updateSettings({ name: nameInput.value.trim() });
     toast('Имя сохранено');
+  };
+
+  const medsSwitch = root.querySelector('[data-f="meds"]');
+  medsSwitch.onchange = () => {
+    store.updateSettings({ trackMeds: medsSwitch.checked });
+    toast(medsSwitch.checked ? 'Отметки лекарств включены' : 'Отметки лекарств скрыты, прошлые записи сохранены');
+  };
+  const advancedSwitch = root.querySelector('[data-f="advanced"]');
+  advancedSwitch.onchange = () => {
+    store.updateSettings({ advancedReport: advancedSwitch.checked });
+    toast(advancedSwitch.checked ? 'Включён расширенный отчёт' : 'Включён отчёт для психолога');
+    render(root);
   };
 
   const cycleSwitch = root.querySelector('[data-f="cycle"]');
