@@ -48,7 +48,8 @@ function normalize(s) {
   // Новым пользователям дополнительные функции выключены до выбора в анкете.
   const legacyMeds = s?.settings?.trackMeds === undefined ? hadMeds : !!s.settings.trackMeds;
   const legacyCycle = s?.settings?.trackCycle === undefined ? hadCycle : !!s.settings.trackCycle;
-  const legacyAdvanced = s?.settings?.advancedReport === undefined ? (hadMeds || legacyCycle) : !!s.settings.advancedReport;
+  // Расширенный отчёт всегда выбирают явно — наличие лекарства само по себе его не включает.
+  const legacyAdvanced = s?.settings?.advancedReport === true;
   return {
     entries,
     log,
