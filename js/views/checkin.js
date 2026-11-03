@@ -21,7 +21,11 @@ const MED_OPTIONS = [
 function parseSleep(text) {
   const t = String(text).trim().toLowerCase();
   const hm = t.match(/^(\d{1,2})\s*(?::|ч[а-я.]*)\s*(\d{1,2})?\s*(?:м[а-я.]*)?$/);
-  if (hm) return Number(hm[1]) + Number(hm[2] || 0) / 60;
+  if (hm) {
+    const minutes = Number(hm[2] || 0);
+    if (minutes >= 60) return null;
+    return Number(hm[1]) + minutes / 60;
+  }
   const n = Number(t.replace(',', '.'));
   return t && Number.isFinite(n) ? n : null;
 }
