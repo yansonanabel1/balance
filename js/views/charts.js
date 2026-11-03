@@ -22,7 +22,7 @@ export function render(root) {
 
   root.innerHTML = `
     <header class="page-head"><p class="eyebrow">Как менялось состояние</p><h1 class="display">Графики</h1>
-      <a class="btn sm ink" style="margin-top:14px" href="#/report">${icon('print')} Отчёт для врача</a></header>
+      <a class="btn sm ink" style="margin-top:14px" href="#/report">${icon('print')} ${store.advancedReportOn() ? 'Отчёт для врача' : 'Отчёт для психолога'}</a></header>
     <section>
       <div class="section-title"><h2 class="h2">Наблюдения</h2><span class="hand">за 2 недели</span></div>
       <div class="insights">${insights(store.dateKey())}</div>
@@ -112,6 +112,10 @@ export function avg(entries, key) {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
+function kSleepOptions(keys) {
+  return keys[0] === 'sleep' && !store.advancedReportOn() ? { neutralSleep: true } : {};
+}
+
 function card(title, entries, keys, type) {
   const legend = keys.map((k) => {
     const a = avg(entries, k);
@@ -121,7 +125,7 @@ function card(title, entries, keys, type) {
     <section class="card chart-card">
       <h2 class="h2">${title}</h2>
       <div class="legend">${legend}</div>
-      <div class="chart">${chartSvg(entries, keys, type)}</div>
+      <div class="chart">${chartSvg(entries, keys, type, kSleepOptions(keys))}</div>
     </section>`;
 }
 
@@ -130,14 +134,15 @@ export function chartSvg(entries, keys, type, thresholds = {}) {
   const isSleep = keys[0] === 'sleep';
   const sleepLow = Number.isFinite(thresholds.sleepLow) ? thresholds.sleepLow : 7;
   const sleepHigh = Number.isFinite(thresholds.sleepHigh) ? thresholds.sleepHigh : 9;
+  const neutralSleep = !!thresholds.neutralSleep;
   const sleepValues = entries.map((e) => e.sleep).filter((v) => typeof v === 'number' && Number.isFinite(v));
   const max = isSleep ? Math.max(10, Math.ceil((sleepValues.length ? Math.max(...sleepValues) : 9) + 1), Math.ceil(sleepHigh + 1)) : 10;
   const min = isSleep ? Math.max(0, Math.min(5, Math.floor((sleepValues.length ? Math.min(...sleepValues) : 7) - 1), Math.floor(sleepLow - 1))) : 1;
   const ticks = isSleep ? [...new Set([min, sleepLow, sleepHigh, max])].filter((v) => v >= min && v <= max).sort((a,b) => a-b) : [1, 4, 7, 10];
-  return svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh });
+  return svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh, neutralSleep });
 }
 
-function svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh }) {
+function svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh, neutralSleep }) {
   const n = entries.length;
   const iw = W - PL - PR, ih = H - PT - PB;
   const xc = (i) => PL + ((i + 0.5) * iw) / n;
@@ -145,7 +150,7 @@ function svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh }) {
   const parts = [];
 
   // Мягкая полоса выбранного диапазона сна, не медицинская граница нормы.
-  if (keys[0] === 'sleep') {
+  if (keys[0] === 'sleep' && !neutralSleep) {
     const top = y(Math.min(max, sleepHigh));
     const bottom = y(Math.max(min, sleepLow));
     if (bottom > top) parts.push('<rect x="' + PL + '" y="' + top + '" width="' + iw + '" height="' + (bottom - top) + '" fill="#DCEFE5" fill-opacity="0.6" rx="2"/>');
@@ -189,7 +194,7 @@ function svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh }) {
         entries.forEach((e, i) => {
           const v = e[k];
           if (typeof v !== 'number' || !Number.isFinite(v)) return;
-          const abnormal = k === 'sleep' && (v < sleepLow || v > sleepHigh);
+          const abnormal = k === 'sleep' && !neutralSleep && (v < sleepLow || v > sleepHigh);
           const dotColor = abnormal ? '#B4402F' : color;
           const label = k === 'sleep' ? fmtSleep(v) + ' ч' : String(v) + '/10';
           parts.push('<circle cx="' + xc(i) + '" cy="' + y(v) + '" r="' + (abnormal ? 3.7 : 2.8) + '" style="fill:' + dotColor + '"><title>' + METRICS[k].label + ': ' + label + ' (' + e.date + ')</title></circle>');
@@ -255,32 +260,36 @@ export function sleepRhythmSvg(entries) {
 }
 
 export function marksCard(entries) {
+  const meds = store.medsOn();
   const cycle = store.cycleOn();
+  if (!meds && !cycle) return '';
   const n = entries.length;
-  const h = cycle ? 56 : 32;
+  if (!n) return '';
+  const both = meds && cycle;
+  const h = both ? 56 : 32;
   const iw = W - PL - PR;
   const xc = (i) => PL + ((i + 0.5) * iw) / n;
   const r = Math.min(5, (iw / n) * 0.35);
+  const yCycle = both ? 37 : 15;
   const parts = [
-    `<text x="${PL - 4}" y="18" text-anchor="end">Лек</text>`,
-    cycle ? `<text x="${PL - 4}" y="40" text-anchor="end">Цикл</text>` : '',
+    meds ? `<text x="${PL - 4}" y="18" text-anchor="end">Лек</text>` : '',
+    cycle ? `<text x="${PL - 4}" y="${yCycle + 3}" text-anchor="end">Цикл</text>` : '',
   ];
-  entries.forEach((e, i) => {
-    if (e.meds === 'taken') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-high)"><title>Приём</title></circle>`);
-    if (e.meds === 'missed') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-low)"><title>Пропуск</title></circle>`);
-    if (cycle && e.periodStart) parts.push(`<circle cx="${xc(i)}" cy="37" r="${r}" style="fill:var(--c-anxiety)"><title>Начало цикла</title></circle>`);
+  entries.forEach((e,i) => {
+    if (meds && e.meds === 'taken') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-high)"><title>Приём</title></circle>`);
+    if (meds && e.meds === 'missed') parts.push(`<circle cx="${xc(i)}" cy="15" r="${r}" style="fill:var(--tone-low)"><title>Пропуск</title></circle>`);
+    if (cycle && e.periodStart) parts.push(`<circle cx="${xc(i)}" cy="${yCycle}" r="${r}" style="fill:var(--c-anxiety)"><title>Начало цикла</title></circle>`);
   });
   return `
     <section class="card chart-card">
-      <h2 class="h2">${cycle ? 'Лекарства и цикл' : 'Лекарства'}</h2>
-      <div class="chart"><svg viewBox="0 0 ${W} ${h}" role="img" aria-label="${cycle ? 'Отметки лекарств и цикла' : 'Отметки лекарств'}">
+      <h2 class="h2">${both ? 'Лекарства и цикл' : meds ? 'Лекарства' : 'Менструальный цикл'}</h2>
+      <div class="chart"><svg viewBox="0 0 ${W} ${h}" role="img" aria-label="${both ? 'Лекарства и цикл' : meds ? 'Лекарства' : 'Цикл'}">
         <line class="grid" x1="${PL}" x2="${W - PR}" y1="15" y2="15"/>
-        ${cycle ? `<line class="grid" x1="${PL}" x2="${W - PR}" y1="37" y2="37"/>` : ''}
+        ${both ? `<line class="grid" x1="${PL}" x2="${W - PR}" y1="37" y2="37"/>` : ''}
         ${parts.join('')}
       </svg></div>
       <div class="marks-legend">
-        <span><i class="dot-sw" style="width:10px;height:10px;border-radius:50%;background:var(--tone-high);display:inline-block"></i>Приём</span>
-        <span><i style="width:10px;height:10px;border-radius:50%;background:var(--tone-low);display:inline-block"></i>Пропуск</span>
+        ${meds ? '<span><i style="width:10px;height:10px;border-radius:50%;background:var(--tone-high);display:inline-block"></i>Приём</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--tone-low);display:inline-block"></i>Пропуск</span>' : ''}
         ${cycle ? '<span><i style="width:10px;height:10px;border-radius:50%;background:var(--c-anxiety);display:inline-block"></i>Начало цикла</span>' : ''}
       </div>
     </section>`;
