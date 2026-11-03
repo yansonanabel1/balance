@@ -1,6 +1,6 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { emotionChips, esc, fmtDate, fmtNum, fmtShort, icon, MEDS, METRICS, metricChips, plural, stateColor, toast } from '../ui.js';
+import { emotionChips, esc, fmtDate, fmtNum, fmtSleep, fmtShort, icon, MEDS, METRICS, metricChips, plural, stateColor, toast } from '../ui.js';
 
 // показываемый месяц живёт между перерисовками
 let month = null;
@@ -114,7 +114,7 @@ export function renderEntry(root, { date }) {
     .map((k) => `
       <div class="metric">
         <div class="k"><i style="background:${METRICS[k].color}"></i>${METRICS[k].label}</div>
-        <div class="v">${k === 'sleep' ? `${fmtNum(e[k])}<small> ч</small>` : `${e[k]}<small> / 10</small>`}</div>
+        <div class="v">${k === 'sleep' ? `${fmtSleep(e[k])}<small> ч</small>` : `${e[k]}<small> / 10</small>`}</div>
       </div>`).join('');
 
   const facts = [];
