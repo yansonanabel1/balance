@@ -79,7 +79,7 @@ export function insights(today, forDoctor = false) {
   const s3 = vals('sleep', 0, 2), s14 = vals('sleep', 3, 16);
   if (s3.length >= 2 && s14.length >= 5) {
     const d = mean(s3) - mean(s14);
-    if (d <= -1.5) list.push(['pink', say(`Последние дни ты спишь в среднем на ${r1(-d)} ч меньше обычного. Резкое сокращение сна бывает ранним сигналом перемен в состоянии — обрати внимание, а если держится, расскажи врачу.`, `Сон за последние 3 дня в среднем на ${r1(-d)} ч короче, чем в предыдущие 2 недели.`)]);
+    if (d <= -1.5) list.push(['pink', say(`Последние дни ты спишь в среднем на ${r1(-d)} ч меньше, чем раньше. Посмотри, как это отражается на твоём самочувствии.`, `Сон за последние 3 дня в среднем на ${r1(-d)} ч короче, чем в предыдущие 2 недели.`)]);
     else if (d >= 1.5) list.push(['lilac', say(`Последние дни ты спишь на ${r1(d)} ч больше обычного. Посмотри, как при этом энергия и настроение.`, `Сон за последние 3 дня в среднем на ${r1(d)} ч длиннее, чем в предыдущие 2 недели.`)]);
   }
 
@@ -97,7 +97,7 @@ export function insights(today, forDoctor = false) {
 
   let missed = 0;
   for (let k = 0; k < 14; k++) if (store.getEntry(store.addDays(today, -k))?.meds === 'missed') missed++;
-  if (missed) list.push(['peach', `За две недели пропущено приёмов лекарств: ${missed}.`]);
+  if (store.medsOn() && missed) list.push(['peach', `За две недели пропущено приёмов лекарств: ${missed}.`]);
 
   let filled = 0;
   for (let k = 0; k < 14; k++) if (store.getEntry(store.addDays(today, -k))) filled++;
