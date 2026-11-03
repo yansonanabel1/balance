@@ -1,6 +1,7 @@
 import * as store from '../store.js';
 import { avg, chartSvg, marksCard, sleepRhythmSvg } from './charts.js';
 import { findPatterns } from './patterns.js';
+import { buildPsychReport } from './report-psych.js';
 import { esc, fmtNum, fmtSleep, icon, METRICS, plural } from '../ui.js';
 
 const PRESETS = [14, 30, 90];
@@ -12,13 +13,14 @@ export function render(root) {
   const today = store.dateKey();
   if (!opts.to) opts.to = today;
   if (!opts.from) opts.from = store.addDays(today, -(opts.days - 1));
+  const advanced = store.advancedReportOn();
 
   root.innerHTML = `
     <div class="no-print">
       <div class="detail-head">
         <a class="icon-btn" href="#/charts" aria-label="Назад">${icon('back')}</a>
       </div>
-      <header class="page-head"><span class="hand">для приёма</span><h1 class="display">Отчёт для врача</h1></header>
+      <header class="page-head"><span class="hand">для приёма</span><h1 class="display">${advanced ? 'Расширенный отчёт для врача' : 'Отчёт для психолога'}</h1></header>
       <section class="card report-controls">
         <div class="seg" role="group" aria-label="Период">
           ${PRESETS.map((d) => `<button data-d="${d}" aria-pressed="${opts.days === d}">${d} дней</button>`).join('')}
@@ -27,11 +29,13 @@ export function render(root) {
           <label class="field" style="flex:1"><span class="label">С</span><input class="input" type="date" data-k="from" value="${opts.from}" max="${today}"></label>
           <label class="field" style="flex:1"><span class="label">По</span><input class="input" type="date" data-k="to" value="${opts.to}" max="${today}"></label>
         </div>
+        ${advanced ? `
         <div class="row report-thresholds">
           <label class="field" style="flex:1"><span class="label">Короткий сон, менее (ч)</span><input class="input" type="number" min="0" max="15.5" step="0.5" data-k="sleepLow" value="${opts.sleepLow}"></label>
           <label class="field" style="flex:1"><span class="label">Долгий сон, более (ч)</span><input class="input" type="number" min="0.5" max="16" step="0.5" data-k="sleepHigh" value="${opts.sleepHigh}"></label>
         </div>
         <p class="note">Ориентиры для выделения дней, а не медицинская норма. По умолчанию: менее 7 и более 9 ч.</p>
+        ` : ''}
         <label class="check"><input type="checkbox" data-k="texts" ${opts.texts ? 'checked' : ''}> Включить тексты дневника</label>
         <button class="btn primary wide" data-act="print">${icon('print')} Сохранить PDF / распечатать</button>
         <p class="note" style="margin:0">В окне печати выбери «Сохранить как PDF» — файл можно отправить врачу или показать на приёме.</p>
@@ -41,7 +45,9 @@ export function render(root) {
   `;
 
   const out = root.querySelector('.report');
-  const draw = () => { out.innerHTML = build(opts.from, opts.to, opts.texts, opts.sleepLow, opts.sleepHigh); };
+  const draw = () => { out.innerHTML = advanced
+    ? build(opts.from, opts.to, opts.texts, opts.sleepLow, opts.sleepHigh)
+    : buildPsychReport(opts.from, opts.to, opts.texts); };
 
   for (const b of root.querySelectorAll('[data-d]')) {
     b.onclick = () => {
@@ -135,7 +141,7 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
     if (typeof e.anxiety === 'number' && e.anxiety >= 8) out.push('тревога ' + e.anxiety + '/10');
     if (typeof e.irritability === 'number' && e.irritability >= 8) out.push('раздражительность ' + e.irritability + '/10');
     if (typeof e.sleep === 'number' && e.sleep < sleepLow && typeof e.energy === 'number' && e.energy >= 9) out.push('при коротком сне энергия ' + e.energy + '/10');
-    if (e.meds === 'missed') out.push('отмечен пропуск лекарства');
+    if (store.medsOn() && e.meds === 'missed') out.push('отмечен пропуск лекарства');
     return out;
   };
   const flagged = filled.map((e) => ({ date: e.date, reasons: reasons(e) })).filter((e) => e.reasons.length);
@@ -147,7 +153,7 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
   if (shortSleep.length) observations.push('Сон менее ' + fmtSleep(sleepLow) + ' ч: ' + shortSleep.length + ' дн.; самая длинная последовательность — ' + longestRun((e) => typeof e.sleep === 'number' && e.sleep < sleepLow) + ' дн.');
   if (longSleep.length) observations.push('Сон более ' + fmtSleep(sleepHigh) + ' ч: ' + longSleep.length + ' дн.');
   if (combo.length) observations.push('Короткий сон одновременно с энергией 9–10/10: ' + combo.length + ' дн. — сочетание для обсуждения с врачом.');
-  if (meds.missed) observations.push('Отмечены пропуски приёма лекарств: ' + meds.missed + '.');
+  if (store.medsOn() && meds.missed) observations.push('Отмечены пропуски приёма лекарств: ' + meds.missed + '.');
   if (!observations.length) observations.push('По выбранным правилам отклонений среди имеющихся измерений не выявлено.');
 
   const cell = (e, k) => {
@@ -176,7 +182,7 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
         ${['sleep', 'state', 'energy', 'anxiety', 'irritability'].map(kpi).join('')}
         <div class="kpi"><span>Заполнено дней</span><b>${filled.length} / ${n}</b><span>Дни без записи не считаются пропуском лекарства</span></div>
         <div class="kpi"><span>Сон вне ориентиров</span><b>${shortSleep.length + longSleep.length}</b><span>короткий: ${shortSleep.length}, долгий: ${longSleep.length}</span></div>
-        <div class="kpi"><span>Лекарства</span><b>${meds.taken} / ${meds.taken + meds.missed}</b><span>принято среди известных отметок; пропусков: ${meds.missed}</span></div>
+        ${store.medsOn() ? `<div class="kpi"><span>Лекарства</span><b>${meds.taken} / ${meds.taken + meds.missed}</b><span>принято среди известных отметок; пропусков: ${meds.missed}</span></div>` : ''}
       </div>
       <p class="sub" style="margin-top:10px">Шкалы 1–10 (самооценка). Сон — часы за ночь${cycles.length ? `. Начало цикла: ${cycles.join(', ')}` : ''}.</p>
     </section>
@@ -223,7 +229,7 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
 
     <section>
       <h2>Даты и значения, на которые стоит обратить внимание</h2>
-      <p class="sub">Сон вне выбранного диапазона; состояние ≤3/10; тревога или раздражительность ≥8/10; короткий сон при энергии ≥9/10; отмеченные пропуски лекарств.</p>
+      <p class="sub">Сон вне выбранного диапазона; состояние ≤3/10; тревога или раздражительность ≥8/10; короткий сон при энергии ≥9/10${store.medsOn() ? '; отмеченные пропуски лекарств' : ''}.</p>
       ${flagged.length ? `<ul class="report-alerts">
         ${flagged.map(({ date, reasons: notes }) => `<li><b>${fmt(date, { day: 'numeric', month: 'short' })}</b><span>${esc(notes.join('; '))}</span></li>`).join('')}
       </ul>` : '<p>Таких отметок в заполненных данных нет.</p>'}
@@ -237,12 +243,12 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
     <section>
       <h2>По дням</h2>
       <div class="table-wrap"><table>
-        <thead><tr><th>Дата</th><th class="num">Сон</th><th class="num">Сост.</th><th class="num">Энерг.</th><th class="num">Трев.</th><th class="num">Раздр.</th><th>Лек.</th><th>Заметки</th></tr></thead>
+        <thead><tr><th>Дата</th><th class="num">Сон</th><th class="num">Сост.</th><th class="num">Энерг.</th><th class="num">Трев.</th><th class="num">Раздр.</th>${store.medsOn() ? '<th>Лек.</th>' : ''}<th>Заметки</th></tr></thead>
         <tbody>
           ${entries.map((e) => `<tr class="${!filledDates.has(e.date) ? 'report-empty' : flaggedDates.has(e.date) ? 'report-highlight' : ''}">
             <td>${fmt(e.date, { day: '2-digit', month: '2-digit' })}${cycleOn && e.periodStart ? ' ●' : ''}</td>
             ${['sleep', 'state', 'energy', 'anxiety', 'irritability'].map((k) => cell(e, k)).join('')}
-            <td>${e.meds ? MEDS_SHORT[e.meds] : '—'}</td>
+            ${store.medsOn() ? `<td>${e.meds ? MEDS_SHORT[e.meds] : '—'}</td>` : ''}
             <td class="note-cell">${!filledDates.has(e.date) ? 'Нет записи' : (esc([...(e.emotions || []), ...(e.triggers || [])].join(', ')) + (withTexts && e.text ? (e.emotions?.length || e.triggers?.length ? '; ' : '') + esc(e.text) : '')) || '—'}</td>
           </tr>`).join('')}
         </tbody>
