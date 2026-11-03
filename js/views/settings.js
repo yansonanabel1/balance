@@ -33,7 +33,7 @@ export function render(root) {
     </section>
 
     <section class="section card" id="tracking-options">
-      <h2 class="h2">Какие функции тебе нужны?</h2>
+      <h2 class="h2">Анкета: что отслеживать</h2>
       <p class="note">Дополнительные разделы необязательны. Включи нужные — они появятся в ежедневных отметках, дневнике и отчёте. Отключение не удаляет прошлые записи.</p>
       <label class="switch-row" style="box-shadow:none;background:var(--surface-2);margin-top:14px">
         <span><b>Приём лекарств</b><span>Отметки «принято / пропущено / не требуется»</span></span>
