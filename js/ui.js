@@ -85,7 +85,7 @@ export const MEDS = {
 
 export function metricChips(e) {
   const chips = [];
-  if (typeof e.sleep === 'number') chips.push(chip('sleep', `${fmtNum(e.sleep)} ч`));
+  if (typeof e.sleep === 'number') chips.push(chip('sleep', `${fmtSleep(e.sleep)} ч`));
   for (const k of ['state', 'energy', 'anxiety', 'irritability']) {
     if (typeof e[k] === 'number') chips.push(chip(k, e[k]));
   }
