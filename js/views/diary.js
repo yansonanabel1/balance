@@ -62,8 +62,9 @@ export function renderList(root) {
       const bg = color ? `background:${color}` : e ? 'background:var(--surface-2);color:var(--text)' : '';
       const sleeping = typeof e?.sleep === 'number' ? ', сон ' + fmtSleep(e.sleep) + ' ч' : '';
       const title = (typeof e?.state === 'number' ? ', состояние ' + e.state : '') + (typeof e?.energy === 'number' ? ', энергия ' + e.energy : '') + sleeping;
-      const markers = (e?.meds === 'missed' ? '<i class="cal-status cal-status-meds" title="Пропуск лекарств"></i>' : '')
-        + (e?.triggers?.length ? '<i class="cal-status cal-status-event" title="Отмечено событие"></i>' : '');
+      const markers = (store.medsOn() && e?.meds === 'missed' ? '<i class="cal-status cal-status-meds" title="Пропуск лекарств"></i>' : '')
+        + (e?.triggers?.length ? '<i class="cal-status cal-status-event" title="Отмечено событие"></i>' : '')
+        + (store.cycleOn() && e?.periodStart ? '<i class="cal-status cal-status-cycle" title="Первый день цикла"></i>' : '');
       cells.push(`<a class="${cls}" style="${bg}" href="${e ? `#/entry/${key}` : `#/checkin/${key}`}" aria-label="${esc(fmtDate(key) + (e ? title : ', нет записи'))}"><span>${d}</span>${markers ? `<span class="cal-statuses">${markers}</span>` : ''}</a>`);
     }
     const sleepShort = monthData.filter(e=>typeof e.sleep === 'number' && e.sleep < 7).length;
@@ -86,7 +87,7 @@ export function renderList(root) {
       <div class="cal-legend">
         ${legend.map(([color,label])=>`<span><i style="background:${color}"></i>${label}</span>`).join('')}
       </div>
-      <div class="cal-legend cal-status-legend"><span><i class="cal-status-meds"></i>Пропуск лекарства</span><span><i class="cal-status-event"></i>Событие</span></div>
+      <div class="cal-legend cal-status-legend">${store.medsOn() ? '<span><i class="cal-status-meds"></i>Пропуск лекарства</span>' : ''}<span><i class="cal-status-event"></i>Событие</span>${store.cycleOn() ? '<span><i class="cal-status-cycle"></i>Начало цикла</span>' : ''}</div>
       <p class="cal-month-summary">Отмечено: ${monthData.length} дн. · Сон &lt; 7 ч: ${sleepShort} · Сон &gt; 9 ч: ${sleepLong} · Дни с событиями: ${contextCount}</p>`;
     for (const btn of cal.querySelectorAll('[data-cal-metric]')) {
       btn.onclick = () => { calendarMetric = btn.dataset.calMetric; drawCal(); };
@@ -116,7 +117,7 @@ export function renderList(root) {
 
 function card(e) {
   const extra = [];
-  if (e.meds === 'missed') extra.push('<span class="chip">Пропуск лекарств</span>');
+  if (store.medsOn() && e.meds === 'missed') extra.push('<span class="chip">Пропуск лекарств</span>');
   if (e.periodStart && store.cycleOn()) extra.push('<span class="chip">1-й день цикла</span>');
   for (const event of e.triggers || []) extra.push('<span class="chip">' + esc(event) + '</span>');
   return `
@@ -144,7 +145,7 @@ export function renderEntry(root, { date }) {
       </div>`).join('');
 
   const facts = [];
-  if (e.meds) facts.push(MEDS[e.meds]);
+  if (store.medsOn() && e.meds) facts.push(MEDS[e.meds]);
   if (e.sleepStart && e.sleepEnd) facts.push('Сон: ' + e.sleepStart + ' – ' + e.sleepEnd);
   for (const event of e.triggers || []) facts.push(event);
   if (cd) facts.push(`${cd}-й день цикла`);

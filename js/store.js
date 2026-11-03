@@ -10,6 +10,8 @@ const DEFAULT_SETTINGS = {
   gender: 'f',
   // отметки менструального цикла: у новых пользователей выключены
   trackCycle: false,
+  trackMeds: false,
+  advancedReport: false,
   contacts: [{ name: 'Экстренные службы', phone: '112' }],
   lastBackup: null,
   installHintHidden: false,
@@ -39,6 +41,15 @@ function normalize(s) {
   // log — то, что не является отметкой дня (например, минуты дыхания), чтобы не создавать «пустых» записей
   const log = s && s.log && typeof s.log === 'object' ? s.log : {};
   const obj = (k) => (s && s[k] && typeof s[k] === 'object' ? s[k] : {});
+  const historical = Object.values(entries);
+  const hadMeds = historical.some(e => e && (e.meds === 'taken' || e.meds === 'missed' || e.meds === 'none'));
+  const hadCycle = historical.some(e => e && e.periodStart === true);
+  // Старым пользователям с отметками оставляем привычные разделы.
+  // Новым пользователям дополнительные функции выключены до выбора в анкете.
+  const legacyMeds = s?.settings?.trackMeds === undefined ? hadMeds : !!s.settings.trackMeds;
+  const legacyCycle = s?.settings?.trackCycle === undefined ? hadCycle : !!s.settings.trackCycle;
+  // Расширенный отчёт всегда выбирают явно — наличие лекарства само по себе его не включает.
+  const legacyAdvanced = s?.settings?.advancedReport === true;
   return {
     entries,
     log,
@@ -49,9 +60,10 @@ function normalize(s) {
     pending: Array.isArray(s?.pending) ? s.pending : [],
     settings: {
       ...DEFAULT_SETTINGS,
-      // у тех, кто пользовался приложением до появления настройки, цикл уже был — оставляем включённым
-      trackCycle: s?.settings && s.settings.trackCycle === undefined ? Object.keys(entries).length > 0 : DEFAULT_SETTINGS.trackCycle,
       ...(s && s.settings),
+      trackCycle: legacyCycle,
+      trackMeds: legacyMeds,
+      advancedReport: legacyAdvanced,
       tg: { ...DEFAULT_SETTINGS.tg, ...(s?.settings?.tg) },
     },
   };
@@ -172,6 +184,14 @@ export function streak() {
 
 export function cycleOn() {
   return !!state.settings.trackCycle;
+}
+
+export function medsOn() {
+  return !!state.settings.trackMeds;
+}
+
+export function advancedReportOn() {
+  return !!state.settings.advancedReport;
 }
 
 // День цикла на дату — от последней отметки «начались месячные»
