@@ -106,7 +106,7 @@ export function render(root, { date, step }) {
         <div class="checkin-foot"><button class="link-btn" data-act="skip">${skipText(key, entry)}</button></div>`;
     }
 
-    if (key === 'sleep') return sleepBody(entry, sleepMode);
+    if (key === 'sleep') return sleepBody(entry, sleepMode, day);
 
     if (key === 'meds') {
       const cd = store.cycleDay(store.addDays(day, -1));
