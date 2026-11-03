@@ -20,8 +20,8 @@ function parseDuration(text) {
   const v = Number(t.replace(',', '.'));
   return t && Number.isFinite(v) ? v : null;
 }
-export function sleepBody(entry, mode) {
-  const v = typeof entry.sleep === 'number' ? entry.sleep : 7;
+export function sleepBody(entry, mode, day) {
+  const v = typeof entry.sleep === 'number' ? entry.sleep : store.lastValue('sleep', day) ?? 7;
   const actions = '<div class="checkin-foot"><button class="btn primary wide" data-act="next">Сохранить и продолжить</button>'
     + '<button class="link-btn" data-act="sleep-mode">' + (mode === 'clock' ? 'Указать только длительность' : 'Ввести время засыпания и пробуждения') + '</button>'
     + '<button class="link-btn" data-act="skip">Пропустить</button></div>';
