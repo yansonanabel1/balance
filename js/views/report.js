@@ -38,7 +38,7 @@ export function render(root) {
         ` : ''}
         <label class="check"><input type="checkbox" data-k="texts" ${opts.texts ? 'checked' : ''}> Включить тексты дневника</label>
         <button class="btn primary wide" data-act="print">${icon('print')} Сохранить PDF / распечатать</button>
-        <p class="note" style="margin:0">В окне печати выбери «Сохранить как PDF» — файл можно отправить врачу или показать на приёме.</p>
+        <p class="note" style="margin:0">В окне печати выбери «Сохранить как PDF» — файл можно отправить психологу или другому специалисту либо показать на приёме.</p>
       </section>
     </div>
     <article class="report"></article>
