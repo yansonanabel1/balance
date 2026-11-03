@@ -3,7 +3,7 @@ import { art } from '../art.js';
 import { sleepBody, bindSleep } from './sleep-flow.js';
 import { EMOTIONS, EVENTS, esc, fmtDate, fmtNum, fmtSleep, gx, icon, plural, promptOfDay, scaleTone } from '../ui.js';
 
-const STEPS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'meds', 'feelings'];
+const STEPS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'meds', 'cycle', 'feelings'];
 
 const SCALES = {
   state: { title: 'Как ты себя чувствуешь?', hint: 'Общее состояние прямо сейчас', low: 'очень плохо', high: 'отлично' },
@@ -41,6 +41,7 @@ function hoursMinutes(v) {
 // Есть ли уже ответ на этом шаге
 function answered(key, entry) {
   if (key === 'meds') return !!entry.meds;
+  if (key === 'cycle') return typeof entry.periodStart === 'boolean';
   if (key === 'feelings') return !!entry.text || !!entry.emotions?.length || !!entry.triggers?.length;
   return typeof entry[key] === 'number';
 }
@@ -50,10 +51,12 @@ const skipText = (key, entry) => (answered(key, entry) ? 'Оставить ка�
 export function render(root, { date, step }) {
   const day = store.isDateKey(date) ? date : store.dateKey();
   const start = store.getEntry(day) || {};
+  const steps = STEPS.filter((key) => (key !== 'meds' || store.medsOn()) && (key !== 'cycle' || store.cycleOn()));
   let sleepMode = start.sleepStart && start.sleepEnd ? 'clock' : typeof start.sleep === 'number' ? 'manual' : 'clock';
   // Без явного шага продолжаем с первого незаполненного (пропущенные осознанно — не в счёт)
-  const firstOpen = STEPS.findIndex((k) => !answered(k, start) && !(start.skipped || []).includes(k));
-  let i = step ? Math.max(0, STEPS.indexOf(step === 'diary' ? 'feelings' : step)) : Math.max(0, firstOpen);
+  const firstOpen = steps.findIndex((k) => !answered(k, start) && !(start.skipped || []).includes(k));
+  let i = step && steps.includes(step === 'diary' ? 'feelings' : step)
+    ? steps.indexOf(step === 'diary' ? 'feelings' : step) : Math.max(0, firstOpen);
   let dir = 'fwd';
   let saveTimer = null;
 
@@ -62,10 +65,10 @@ export function render(root, { date, step }) {
   const save = (patch) => store.saveEntry(day, patch);
 
   function draw() {
-    if (i >= STEPS.length) return drawDone();
-    const key = STEPS[i];
+    if (i >= steps.length) return drawDone();
+    const key = steps[i];
     const entry = store.getEntry(day) || {};
-    const pct = Math.round(((i + 1) / STEPS.length) * 100);
+    const pct = Math.round(((i + 1) / steps.length) * 100);
     const isToday = day === store.dateKey();
 
     root.innerHTML = `
@@ -75,7 +78,7 @@ export function render(root, { date, step }) {
           <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></div>
           <button class="icon-btn" data-act="close" aria-label="Закрыть — ответы уже сохранены">${icon('close')}</button>
         </div>
-        <p class="step-count"><span>${isToday ? 'Сегодня' : esc(fmtDate(day))}</span><span>${i + 1} из ${STEPS.length}</span></p>
+        <p class="step-count"><span>${isToday ? 'Сегодня' : esc(fmtDate(day))}</span><span>${i + 1} из ${steps.length}</span></p>
         <div class="checkin-body ${dir}">${body(key, entry)}</div>
       </div>`;
 
@@ -109,17 +112,29 @@ export function render(root, { date, step }) {
     if (key === 'sleep') return sleepBody(entry, sleepMode, day);
 
     if (key === 'meds') {
-      const cd = store.cycleDay(store.addDays(day, -1));
-      const cycleHint = entry.periodStart ? 'Отмечен первый день цикла' : cd ? `Сегодня ${cd + 1}-й день цикла` : 'Отметь — и приложение будет считать день цикла';
       return `
-        <h1 class="q">${store.cycleOn() ? 'Лекарства и цикл' : 'Лекарства'}</h1>
+        <h1 class="q">Лекарства</h1>
         <p class="hint">Как сегодня с приёмом?</p>
         <div class="choices">${MED_OPTIONS.map(([v, label]) => choice(v, gx(label), entry.meds === v)).join('')}</div>
-        ${store.cycleOn() ? `<label class="switch-row">
-          <span><b>Сегодня начались месячные</b><span class="cycle-hint">${cycleHint}</span></span>
-          <span class="switch"><input type="checkbox" ${entry.periodStart ? 'checked' : ''}><i></i></span>
-        </label>` : ''}
-        <div class="checkin-foot"><button class="btn primary wide" data-act="next">Дальше</button></div>`;
+        <div class="checkin-foot"><button class="btn primary wide" data-act="next">Дальше</button>
+          <button class="link-btn" data-act="skip">${skipText(key, entry)}</button>
+        </div>`;
+    }
+
+    if (key === 'cycle') {
+      const cd = store.cycleDay(store.addDays(day, -1));
+      const cycleHint = entry.periodStart ? 'Отмечен первый день цикла' : cd ? `Предыдущий день — ${cd}-й день цикла` : 'Отметку можно делать только в день начала';
+      return `
+        <h1 class="q">Менструальный цикл</h1>
+        <p class="hint">Начались ли сегодня месячные?</p>
+        <label class="switch-row">
+          <span><b>Сегодня первый день цикла</b><span class="cycle-hint">${cycleHint}</span></span>
+          <span class="switch"><input type="checkbox" data-cycle-start ${entry.periodStart ? 'checked' : ''}><i></i></span>
+        </label>
+        <div class="checkin-foot">
+          <button class="btn primary wide" data-act="next">Дальше</button>
+          <button class="link-btn" data-act="skip">${skipText(key, entry)}</button>
+        </div>`;
     }
 
     // feelings: эмоции + дневник
@@ -176,13 +191,20 @@ export function render(root, { date, step }) {
           });
         };
       }
-      const sw = root.querySelector('.switch input');
-      if (sw) sw.onchange = () => {
-        save({ periodStart: sw.checked });
-        const cd = store.cycleDay(store.addDays(day, -1));
-        root.querySelector('.cycle-hint').textContent = sw.checked ? 'Отмечен первый день цикла' : cd ? `Сегодня ${cd + 1}-й день цикла` : 'Отметь — и приложение будет считать день цикла';
-      };
       root.querySelector('[data-act="next"]').onclick = next;
+      return;
+    }
+
+    if (key === 'cycle') {
+      const sw = root.querySelector('[data-cycle-start]');
+      sw.onchange = () => {
+        save({ periodStart: sw.checked });
+        root.querySelector('.cycle-hint').textContent = sw.checked ? 'Отмечен первый день цикла' : 'Не отмечен первый день цикла';
+      };
+      root.querySelector('[data-act="next"]').onclick = () => {
+        if (typeof store.getEntry(day)?.periodStart !== 'boolean') save({ periodStart: sw.checked });
+        next();
+      };
       return;
     }
 
