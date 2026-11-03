@@ -1,5 +1,6 @@
 import * as store from '../store.js';
-import { avg, chartSvg, marksCard } from './charts.js';
+import { avg, chartSvg, marksCard, sleepRhythmSvg } from './charts.js';
+import { findPatterns } from './patterns.js';
 import { esc, fmtNum, fmtSleep, icon, METRICS, plural } from '../ui.js';
 
 const PRESETS = [14, 30, 90];
@@ -139,6 +140,8 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
   };
   const flagged = filled.map((e) => ({ date: e.date, reasons: reasons(e) })).filter((e) => e.reasons.length);
   const flaggedDates = new Set(flagged.map((e) => e.date));
+  const patterns = findPatterns(entries, sleepLow, sleepHigh);
+  const clockEntries = entries.filter((e) => e.sleepStart && e.sleepEnd);
 
   const observations = [];
   if (shortSleep.length) observations.push('Сон менее ' + fmtSleep(sleepLow) + ' ч: ' + shortSleep.length + ' дн.; самая длинная последовательность — ' + longestRun((e) => typeof e.sleep === 'number' && e.sleep < sleepLow) + ' дн.');
@@ -184,6 +187,18 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
       <p class="sub">Автоматические отметки основаны на заданных порогах. Они не устанавливают диагноз и не заменяют оценку специалиста.</p>
     </section>
 
+    <section class="report-patterns">
+      <h2>Повторяющиеся изменения — обсудить на приёме</h2>
+      <p class="sub">Отдельные наблюдения основаны на последовательных заполненных днях. Пробелы в дневнике прерывают последовательности, а не заполняются предположениями.</p>
+      ${patterns.length ? `<div class="pattern-list">${patterns.map((p) => `
+        <div class="pattern-item">
+          <b>${esc(p.title)}</b>
+          <p>${fmt(p.from, {day:'numeric', month:'short'})} — ${fmt(p.to, {day:'numeric', month:'short'})} · ${p.days} дн. подряд</p>
+          <p>${p.id === 'short' || p.id === 'long' || p.id === 'combo' ? 'Сон: ' + fmtSleep(p.min) + '–' + fmtSleep(p.max) + ' ч' : 'Оценки: ' + p.min + '–' + p.max + '/10'}${p.id === 'combo' ? '; энергия 9–10/10' : ''}</p>
+          ${p.events.length ? `<p>Отмеченные события: ${esc(p.events.join(', '))}</p>` : ''}
+        </div>`).join('')}</div>` : '<p class="sub">Продолжительных повторяющихся изменений по выбранным правилам не обнаружено.</p>'}
+      <p class="sub">Это поводы для обсуждения, а не признаки конкретного диагноза.</p>
+    </section>
     <section>
       <h2>Состояние и энергия</h2>
       ${legend(['state', 'energy'])}
@@ -194,6 +209,11 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
       <p class="sub">Выделен диапазон ${fmtSleep(sleepLow)}–${fmtSleep(sleepHigh)} ч. Сплошная линия — соседние измерения, пунктир — пропущенные даты. Красные точки — вне диапазона.</p>
       <div class="chart">${chartSvg(entries, ['sleep'], 'line', { sleepLow, sleepHigh })}</div>
     </section>
+    ${clockEntries.length ? `<section>
+      <h2>Режим сна по ночам</h2>
+      <p class="sub">Время засыпания и пробуждения, по тем дням, когда указаны оба значения. График показывает не более 31 последнего дня периода.</p>
+      <div class="chart sleep-rhythm">${sleepRhythmSvg(entries)}</div>
+    </section>` : ''}
     <section>
       <h2>Тревога и раздражительность</h2>
       ${legend(['anxiety', 'irritability'])}
@@ -223,7 +243,7 @@ function build(from, to, withTexts, sleepLow, sleepHigh) {
             <td>${fmt(e.date, { day: '2-digit', month: '2-digit' })}${cycleOn && e.periodStart ? ' ●' : ''}</td>
             ${['sleep', 'state', 'energy', 'anxiety', 'irritability'].map((k) => cell(e, k)).join('')}
             <td>${e.meds ? MEDS_SHORT[e.meds] : '—'}</td>
-            <td class="note-cell">${!filledDates.has(e.date) ? 'Нет записи' : (esc((e.emotions || []).join(', ')) + (withTexts && e.text ? (e.emotions?.length ? '; ' : '') + esc(e.text) : '')) || '—'}</td>
+            <td class="note-cell">${!filledDates.has(e.date) ? 'Нет записи' : (esc([...(e.emotions || []), ...(e.triggers || [])].join(', ')) + (withTexts && e.text ? (e.emotions?.length || e.triggers?.length ? '; ' : '') + esc(e.text) : '')) || '—'}</td>
           </tr>`).join('')}
         </tbody>
       </table></div>
