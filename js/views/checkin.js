@@ -1,6 +1,7 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { EMOTIONS, esc, fmtDate, fmtNum, fmtSleep, gx, icon, plural, promptOfDay, scaleTone } from '../ui.js';
+import { sleepBody, bindSleep } from './sleep-flow.js';
+import { EMOTIONS, EVENTS, esc, fmtDate, fmtNum, fmtSleep, gx, icon, plural, promptOfDay, scaleTone } from '../ui.js';
 
 const STEPS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'meds', 'feelings'];
 
@@ -40,7 +41,7 @@ function hoursMinutes(v) {
 // Есть ли уже ответ на этом шаге
 function answered(key, entry) {
   if (key === 'meds') return !!entry.meds;
-  if (key === 'feelings') return !!entry.text || !!entry.emotions?.length;
+  if (key === 'feelings') return !!entry.text || !!entry.emotions?.length || !!entry.triggers?.length;
   return typeof entry[key] === 'number';
 }
 
@@ -49,6 +50,7 @@ const skipText = (key, entry) => (answered(key, entry) ? 'Оставить ка�
 export function render(root, { date, step }) {
   const day = store.isDateKey(date) ? date : store.dateKey();
   const start = store.getEntry(day) || {};
+  let sleepMode = start.sleepStart && start.sleepEnd ? 'clock' : typeof start.sleep === 'number' ? 'manual' : 'clock';
   // Без явного шага продолжаем с первого незаполненного (пропущенные осознанно — не в счёт)
   const firstOpen = STEPS.findIndex((k) => !answered(k, start) && !(start.skipped || []).includes(k));
   let i = step ? Math.max(0, STEPS.indexOf(step === 'diary' ? 'feelings' : step)) : Math.max(0, firstOpen);
@@ -104,26 +106,7 @@ export function render(root, { date, step }) {
         <div class="checkin-foot"><button class="link-btn" data-act="skip">${skipText(key, entry)}</button></div>`;
     }
 
-    if (key === 'sleep') {
-      const v = typeof entry.sleep === 'number' ? entry.sleep : store.lastValue('sleep', day) ?? 7;
-      return `
-        <h1 class="q">${gx('Сколько ты {спала|спал} этой ночью?')}</h1>
-        <p class="hint">Цифру можно взять из фитнес-браслета или приложения сна</p>
-        <div class="sleep-art">${art('moon')}</div>
-        <div class="sleep-box">
-          <button class="round" data-act="minus" aria-label="Меньше на 5 минут">−</button>
-          <label class="sleep-value"><input type="text" inputmode="decimal" autocomplete="off" value="${fmtSleep(v)}" aria-label="Часы сна, например 7:25 или 7,4"><small>ч</small></label>
-          <button class="round" data-act="plus" aria-label="Больше на 5 минут">+</button>
-        </div>
-        <p class="sleep-hm" aria-live="polite">${hoursMinutes(v)}</p>
-        <input type="range" min="0" max="16" step="0.016666666666666666" value="${v}" aria-label="Часы сна">
-        <div class="range-legend"><span>0</span><span>8</span><span>16 ч</span></div>
-        <p class="hint small" style="margin:10px 0 0;text-align:center">Нажми на цифру, чтобы указать сон с точностью до минуты: например, 9:18</p>
-        <div class="checkin-foot">
-          <button class="btn primary wide" data-act="next">Дальше</button>
-          <button class="link-btn" data-act="skip">${skipText(key, entry)}</button>
-        </div>`;
-    }
+    if (key === 'sleep') return sleepBody(entry, sleepMode);
 
     if (key === 'meds') {
       const cd = store.cycleDay(store.addDays(day, -1));
@@ -142,11 +125,16 @@ export function render(root, { date, step }) {
     // feelings: эмоции + дневник
     const prompt = entry.prompt || promptOfDay(day);
     const chosen = new Set(entry.emotions || []);
+    const chosenEvents = new Set(entry.triggers || []);
     return `
       <h1 class="q">Что меня беспокоит?</h1>
       <p class="label">Какие чувства сейчас есть — можно несколько</p>
       <div class="emotions">
         ${EMOTIONS.map(([n, c]) => `<button type="button" class="emo" data-e="${n}" aria-pressed="${chosen.has(n)}"><i style="background:${c}"></i>${n}</button>`).join('')}
+      </div>
+      <p class="label">Что могло повлиять на состояние? Можно пропустить.</p>
+      <div class="emotions events">
+        ${EVENTS.map(([n, c]) => `<button type="button" class="emo" data-event="${esc(n)}" aria-pressed="${chosenEvents.has(n)}"><i style="background:${c}"></i>${esc(n)}</button>`).join('')}
       </div>
       <div class="prompt-card bg-yellow on-pastel"><p class="eyebrow">Если не знаешь, с чего начать</p><p>${esc(prompt)}</p></div>
       <textarea aria-label="Что меня беспокоит?" placeholder="Пиши как есть — это только для тебя">${esc(entry.text || '')}</textarea>
@@ -172,27 +160,9 @@ export function render(root, { date, step }) {
     }
 
     if (key === 'sleep') {
-      const range = root.querySelector('input[type="range"]');
-      const field = root.querySelector('.sleep-value input');
-      const hm = root.querySelector('.sleep-hm');
-      let value = typeof entry.sleep === 'number' ? entry.sleep : (store.lastValue('sleep', day) ?? 7);
-      // fromField — не переписываем поле, пока человек в нём печатает
-      const set = (v, fromField = false) => {
-        value = Math.round(Math.min(16, Math.max(0, v)) * 60) / 60;
-        range.value = value;
-        if (!fromField) field.value = fmtSleep(value);
-        hm.textContent = hoursMinutes(value);
-      };
-      range.oninput = () => set(Number(range.value));
-      field.oninput = () => {
-        const v = parseSleep(field.value);
-        if (v != null) set(v, true);
-      };
-      field.onblur = () => set(value);
-      field.onfocus = () => field.select();
-      root.querySelector('[data-act="minus"]').onclick = () => set(value - 5 / 60);
-      root.querySelector('[data-act="plus"]').onclick = () => set(value + 5 / 60);
-      root.querySelector('[data-act="next"]').onclick = () => { save({ sleep: value }); next(); };
+      bindSleep(root, { ...entry, date: day }, sleepMode, {
+        save, next, setMode: (mode) => { sleepMode = mode; draw(); },
+      });
       return;
     }
 
