@@ -187,11 +187,19 @@ export function render(root, { date, step }) {
     }
 
     // feelings
-    for (const b of root.querySelectorAll('.emo')) {
+    for (const b of root.querySelectorAll('[data-e]')) {
       b.onclick = () => {
         b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true');
-        const emotions = [...root.querySelectorAll('.emo[aria-pressed="true"]')].map((x) => x.dataset.e);
+        const emotions = [...root.querySelectorAll('[data-e][aria-pressed="true"]')].map((x) => x.dataset.e);
         save({ emotions });
+      };
+    }
+
+    for (const b of root.querySelectorAll('[data-event]')) {
+      b.onclick = () => {
+        b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true');
+        const triggers = [...root.querySelectorAll('[data-event][aria-pressed="true"]')].map((x) => x.dataset.event);
+        save({ triggers });
       };
     }
 
