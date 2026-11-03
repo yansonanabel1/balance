@@ -632,16 +632,36 @@ textarea:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .report .chart-card .h2 { font-size: 18px; margin: 22px 0 10px; }
 .report .insight { border: 1px solid #E8E1D3; }
 
+
+/* ---------- Отчёт для врача: наблюдения и дневная таблица ---------- */
+.report-overview ul { margin: 9px 0; padding-left: 22px; font-size: 13px; line-height: 1.55; }
+.report-overview li + li { margin-top: 5px; }
+.report-alerts { list-style: none; margin: 12px 0 0; padding: 0; }
+.report-alerts li { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #E8E1D3; font-size: 12.5px; line-height: 1.5; }
+.report-alerts b { white-space: nowrap; }
+.report-empty { background: #F7F5F1; color: #8A8378; }
+.report-highlight td:first-child { font-weight: 700; }
+.report-thresholds .label { font-size: 12px; }
+.report .chart { margin: 10px 0; }
+
 @media print {
-  @page { margin: 14mm 12mm; }
+  @page { size: A4 portrait; margin: 12mm 10mm; }
   body { background: #fff !important; }
   .tabbar, .no-print, .toast, dialog { display: none !important; }
   .view { padding: 0 !important; max-width: none !important; margin: 0 !important; min-height: 0; }
   .view.enter > * { animation: none !important; }
   .report { box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
-  .report section:not(:has(table)), .report tr { break-inside: avoid; }
+  .report section { break-inside: auto; }
+  .report h2 { break-after: avoid; page-break-after: avoid; }
   .report .table-wrap { overflow: visible; margin: 0; padding: 0; }
-  .report table { min-width: 0; }
+  .report table { min-width: 0; width: 100%; table-layout: fixed; font-size: 9px; }
+  .report th, .report td { padding: 4px 3px; }
+  .report th:nth-child(8), .report td:nth-child(8) { width: 28%; }
+  .report .note-cell { max-width: none; overflow-wrap: anywhere; white-space: normal; }
+  .report thead { display: table-header-group; }
+  .report tbody { display: table-row-group; }
+  .report tr { break-inside: avoid; page-break-inside: avoid; }
+  .report .chart svg { width: 100%; max-height: 180px; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
