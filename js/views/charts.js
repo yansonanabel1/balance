@@ -1,6 +1,6 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { fmtNum, icon, METRICS } from '../ui.js';
+import { fmtNum, fmtSleep, icon, METRICS } from '../ui.js';
 
 const RANGES = [7, 30, 90];
 let range = 30;
@@ -43,7 +43,7 @@ export function render(root) {
 
     holder.innerHTML = [
       card('Состояние и энергия', entries, ['state', 'energy'], 'line'),
-      card('Сон', entries, ['sleep'], 'bar'),
+      card('Сон', entries, ['sleep'], 'line'),
       card('Тревога и раздражительность', entries, ['anxiety', 'irritability'], 'line'),
       marksCard(entries),
     ].join('');
@@ -114,7 +114,7 @@ export function avg(entries, key) {
 function card(title, entries, keys, type) {
   const legend = keys.map((k) => {
     const a = avg(entries, k);
-    return `<span><i style="background:${METRICS[k].color}"></i>${METRICS[k].label} · ср. <b>${a == null ? '—' : fmtNum(Math.round(a * 10) / 10)}${k === 'sleep' ? ' ч' : ''}</b></span>`;
+    return `<span><i style="background:${METRICS[k].color}"></i>${METRICS[k].label} · ср. <b>${a == null ? '—' : (k === 'sleep' ? fmtSleep(a) : fmtNum(Math.round(a * 10) / 10))}${k === 'sleep' ? ' ч' : ''}</b></span>`;
   }).join('');
   return `
     <section class="card chart-card">
@@ -125,20 +125,30 @@ function card(title, entries, keys, type) {
 }
 
 // Готовый SVG-график: шкала 1–10 для оценок и 0–N часов для сна
-export function chartSvg(entries, keys, type) {
+export function chartSvg(entries, keys, type, thresholds = {}) {
   const isSleep = keys[0] === 'sleep';
-  const max = isSleep ? Math.max(10, ...entries.map((e) => e.sleep || 0)) : 10;
-  const min = isSleep ? 0 : 1;
-  const ticks = isSleep ? [0, 4, 8, max > 12 ? 12 : null].filter((t) => t != null && t <= max) : [1, 4, 7, 10];
-  return svg(entries, keys, { type, min, max, ticks });
+  const sleepLow = Number.isFinite(thresholds.sleepLow) ? thresholds.sleepLow : 7;
+  const sleepHigh = Number.isFinite(thresholds.sleepHigh) ? thresholds.sleepHigh : 9;
+  const sleepValues = entries.map((e) => e.sleep).filter((v) => typeof v === 'number' && Number.isFinite(v));
+  const max = isSleep ? Math.max(10, Math.ceil((sleepValues.length ? Math.max(...sleepValues) : 9) + 1), Math.ceil(sleepHigh + 1)) : 10;
+  const min = isSleep ? Math.max(0, Math.min(5, Math.floor((sleepValues.length ? Math.min(...sleepValues) : 7) - 1), Math.floor(sleepLow - 1))) : 1;
+  const ticks = isSleep ? [...new Set([min, sleepLow, sleepHigh, max])].filter((v) => v >= min && v <= max).sort((a,b) => a-b) : [1, 4, 7, 10];
+  return svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh });
 }
 
-function svg(entries, keys, { type, min, max, ticks }) {
+function svg(entries, keys, { type, min, max, ticks, sleepLow, sleepHigh }) {
   const n = entries.length;
   const iw = W - PL - PR, ih = H - PT - PB;
   const xc = (i) => PL + ((i + 0.5) * iw) / n;
   const y = (v) => PT + ih - ((v - min) / (max - min)) * ih;
   const parts = [];
+
+  // Мягкая полоса выбранного диапазона сна, не медицинская граница нормы.
+  if (keys[0] === 'sleep') {
+    const top = y(Math.min(max, sleepHigh));
+    const bottom = y(Math.max(min, sleepLow));
+    if (bottom > top) parts.push('<rect x="' + PL + '" y="' + top + '" width="' + iw + '" height="' + (bottom - top) + '" fill="#DCEFE5" fill-opacity="0.6" rx="2"/>');
+  }
 
   for (const t of ticks) {
     parts.push(`<line class="grid" x1="${PL}" x2="${W - PR}" y1="${y(t)}" y2="${y(t)}"/>`);
@@ -159,21 +169,33 @@ function svg(entries, keys, { type, min, max, ticks }) {
   } else {
     for (const k of keys) {
       const color = METRICS[k].color;
-      // линия рвётся там, где нет данных
-      let d = '';
-      let pen = false;
+      // Измеренные соседние даты соединены сплошной линией.
+      // Через пропущенные даты — только пунктир, без выдуманных значений.
+      let previous = null;
       entries.forEach((e, i) => {
         const v = e[k];
-        if (typeof v === 'number') {
-          d += `${pen ? 'L' : 'M'}${xc(i).toFixed(1)},${y(v).toFixed(1)}`;
-          pen = true;
-        } else pen = false;
+        if (typeof v !== 'number' || !Number.isFinite(v)) return;
+        if (previous) {
+          const gap = i - previous.i > 1;
+          const d = 'M' + xc(previous.i).toFixed(1) + ',' + y(previous.v).toFixed(1)
+            + 'L' + xc(i).toFixed(1) + ',' + y(v).toFixed(1);
+          parts.push('<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + (gap ? '1.6' : '2.2') + '"'
+            + (gap ? ' stroke-dasharray="3 4" opacity="0.75"' : '') + ' stroke-linejoin="round" stroke-linecap="round"/>');
+        }
+        previous = { i, v };
       });
-      if (d) parts.push(`<path class="draw" pathLength="1" d="${d}" fill="none" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="stroke:${color}"/>`);
       if (n <= 31) {
         entries.forEach((e, i) => {
           const v = e[k];
-          if (typeof v === 'number') parts.push(`<circle cx="${xc(i)}" cy="${y(v)}" r="2.8" style="fill:${color}"><title>${METRICS[k].label}: ${v}</title></circle>`);
+          if (typeof v !== 'number' || !Number.isFinite(v)) return;
+          const abnormal = k === 'sleep' && (v < sleepLow || v > sleepHigh);
+          const dotColor = abnormal ? '#B4402F' : color;
+          const label = k === 'sleep' ? fmtSleep(v) + ' ч' : String(v) + '/10';
+          parts.push('<circle cx="' + xc(i) + '" cy="' + y(v) + '" r="' + (abnormal ? 3.7 : 2.8) + '" style="fill:' + dotColor + '"><title>' + METRICS[k].label + ': ' + label + ' (' + e.date + ')</title></circle>');
+          if (k === 'sleep' && n <= 7) {
+            const labelY = Math.max(11, y(v) - 9);
+            parts.push('<text x="' + xc(i) + '" y="' + labelY + '" font-size="8" text-anchor="middle" fill="currentColor">' + fmtSleep(v) + '</text>');
+          }
         });
       }
     }

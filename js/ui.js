@@ -54,6 +54,14 @@ export function fmtNum(v) {
   return Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ',');
 }
 
+// Продолжительность сна хранится как часы (включая дробную часть).
+// Формат ч:мм сохраняет точные минуты при ручном вводе и совместим со старыми записями.
+export function fmtSleep(hours) {
+  if (!Number.isFinite(hours)) return '—';
+  const total = Math.max(0, Math.round(hours * 60));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
 export function plural(n, [one, few, many]) {
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
@@ -77,7 +85,7 @@ export const MEDS = {
 
 export function metricChips(e) {
   const chips = [];
-  if (typeof e.sleep === 'number') chips.push(chip('sleep', `${fmtNum(e.sleep)} ч`));
+  if (typeof e.sleep === 'number') chips.push(chip('sleep', `${fmtSleep(e.sleep)} ч`));
   for (const k of ['state', 'energy', 'anxiety', 'irritability']) {
     if (typeof e[k] === 'number') chips.push(chip(k, e[k]));
   }
