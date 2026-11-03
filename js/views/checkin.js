@@ -1,6 +1,6 @@
 import * as store from '../store.js';
 import { art } from '../art.js';
-import { EMOTIONS, esc, fmtDate, fmtNum, gx, icon, plural, promptOfDay, scaleTone } from '../ui.js';
+import { EMOTIONS, esc, fmtDate, fmtNum, fmtSleep, gx, icon, plural, promptOfDay, scaleTone } from '../ui.js';
 
 const STEPS = ['sleep', 'state', 'energy', 'anxiety', 'irritability', 'meds', 'feelings'];
 
@@ -107,14 +107,14 @@ export function render(root, { date, step }) {
         <p class="hint">Цифру можно взять из фитнес-браслета или приложения сна</p>
         <div class="sleep-art">${art('moon')}</div>
         <div class="sleep-box">
-          <button class="round" data-act="minus" aria-label="Меньше на 6 минут">−</button>
-          <label class="sleep-value"><input type="text" inputmode="decimal" autocomplete="off" value="${fmtNum(v)}" aria-label="Часы сна, например 7,4 или 7:25"><small>ч</small></label>
-          <button class="round" data-act="plus" aria-label="Больше на 6 минут">+</button>
+          <button class="round" data-act="minus" aria-label="Меньше на 5 минут">−</button>
+          <label class="sleep-value"><input type="text" inputmode="decimal" autocomplete="off" value="${fmtSleep(v)}" aria-label="Часы сна, например 7:25 или 7,4"><small>ч</small></label>
+          <button class="round" data-act="plus" aria-label="Больше на 5 минут">+</button>
         </div>
         <p class="sleep-hm" aria-live="polite">${hoursMinutes(v)}</p>
-        <input type="range" min="0" max="16" step="0.1" value="${v}" aria-label="Часы сна">
+        <input type="range" min="0" max="16" step="0.016666666666666666" value="${v}" aria-label="Часы сна">
         <div class="range-legend"><span>0</span><span>8</span><span>16 ч</span></div>
-        <p class="hint small" style="margin:10px 0 0;text-align:center">Нажми на цифру, чтобы ввести точно: 9,3 или 9:18</p>
+        <p class="hint small" style="margin:10px 0 0;text-align:center">Нажми на цифру, чтобы указать сон с точностью до минуты: например, 9:18</p>
         <div class="checkin-foot">
           <button class="btn primary wide" data-act="next">Дальше</button>
           <button class="link-btn" data-act="skip">${skipText(key, entry)}</button>
@@ -174,9 +174,9 @@ export function render(root, { date, step }) {
       let value = Number(range.value);
       // fromField — не переписываем поле, пока человек в нём печатает
       const set = (v, fromField = false) => {
-        value = Math.round(Math.min(16, Math.max(0, v)) * 10) / 10;
+        value = Math.round(Math.min(16, Math.max(0, v)) * 60) / 60;
         range.value = value;
-        if (!fromField) field.value = fmtNum(value);
+        if (!fromField) field.value = fmtSleep(value);
         hm.textContent = hoursMinutes(value);
       };
       range.oninput = () => set(Number(range.value));
@@ -186,8 +186,8 @@ export function render(root, { date, step }) {
       };
       field.onblur = () => set(value);
       field.onfocus = () => field.select();
-      root.querySelector('[data-act="minus"]').onclick = () => set(value - 0.1);
-      root.querySelector('[data-act="plus"]').onclick = () => set(value + 0.1);
+      root.querySelector('[data-act="minus"]').onclick = () => set(value - 5 / 60);
+      root.querySelector('[data-act="plus"]').onclick = () => set(value + 5 / 60);
       root.querySelector('[data-act="next"]').onclick = () => { save({ sleep: value }); next(); };
       return;
     }
